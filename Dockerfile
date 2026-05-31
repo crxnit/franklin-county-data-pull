@@ -1,5 +1,9 @@
 # --- stage 1: build the React SPA ------------------------------------------
-FROM node:20-alpine AS web
+# Pin to the BUILD platform (the runner's native arch, amd64) so npm/Vite run
+# natively instead of under QEMU emulation — emulated esbuild/rollup is
+# pathologically slow. The dist/ output is static JS/HTML, arch-independent,
+# so it drops straight into the arm64 runtime stage below.
+FROM --platform=$BUILDPLATFORM node:20-alpine AS web
 WORKDIR /web
 COPY frontend/package.json frontend/package-lock.json* ./
 RUN npm install --no-audit --no-fund
