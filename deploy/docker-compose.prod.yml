@@ -30,16 +30,14 @@ services:
       interval: 30s
       timeout: 4s
       retries: 3
+    # Joining the shared `traefik` network is what lets Traefik reach this
+    # container by name (franklin-housing-app-1:8000). This VPS's Traefik uses
+    # the FILE provider, not the docker provider — so routing/TLS is defined in
+    # deploy/traefik/7518.jjocapps.com.yml (installed into Traefik's dynamic
+    # dir), NOT via container labels. Don't add traefik.* labels here; they'd
+    # be silently ignored.
     networks:
       - traefik
-    labels:
-      - "traefik.enable=true"
-      - "traefik.docker.network=traefik"
-      - "traefik.http.routers.franklin-housing.rule=Host(`7518.jjocapps.com`)"
-      - "traefik.http.routers.franklin-housing.entrypoints=websecure"
-      - "traefik.http.routers.franklin-housing.tls=true"
-      - "traefik.http.routers.franklin-housing.tls.certresolver=letsencrypt"
-      - "traefik.http.services.franklin-housing.loadbalancer.server.port=8000"
 
 networks:
   traefik:

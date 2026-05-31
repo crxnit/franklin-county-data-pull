@@ -28,10 +28,12 @@ FH_CORS_ORIGINS=https://7518.jjocapps.com
 ```
 
 - The `./data` dir must be `chown 1000:1000` and seeded once: `docker compose run --rm app python -m server.jobs.refresh`.
-- Routing/TLS is handled by the host's existing **Traefik** instance via labels in
-  the compose file (router `franklin-housing`, Host `7518.jjocapps.com`, entrypoint
-  `websecure`, certresolver `letsencrypt`, network `traefik`). The container
-  publishes no host port.
+- Routing/TLS is handled by the host's existing **Traefik**, which on this VPS uses
+  the **file provider** (not the docker provider) — so container labels are ignored.
+  Install `deploy/traefik/7518.jjocapps.com.yml` into Traefik's dynamic dir
+  (`/srv/portal/traefik/dynamic/`); it routes Host `7518.jjocapps.com` →
+  `franklin-housing-app-1:8000` over the shared `traefik` network, TLS via the
+  `letsencrypt` resolver (HTTP-01). The container publishes no host port.
 
 ### Daily data refresh (host cron)
 

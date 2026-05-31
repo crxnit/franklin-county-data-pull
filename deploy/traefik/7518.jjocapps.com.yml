@@ -1,0 +1,24 @@
+# Franklin County housing webapp — Traefik dynamic route.
+#
+# This VPS's Traefik uses the FILE provider (providers.file, watching
+# /etc/traefik/dynamic/), NOT the docker provider — so container labels are
+# ignored and routing must be declared here. Install on the VPS at:
+#   /srv/portal/traefik/dynamic/7518.jjocapps.com.yml
+# (Traefik hot-reloads the dir.) The service targets the container by name on
+# the shared `traefik` docker network; TLS is issued by the `letsencrypt`
+# certresolver via the HTTP-01 challenge on the `web` (:80) entrypoint.
+http:
+  routers:
+    franklin-housing:
+      rule: "Host(`7518.jjocapps.com`)"
+      entryPoints:
+        - websecure
+      service: franklin-housing
+      tls:
+        certResolver: letsencrypt
+  services:
+    franklin-housing:
+      loadBalancer:
+        servers:
+          - url: "http://franklin-housing-app-1:8000"
+        passHostHeader: true
