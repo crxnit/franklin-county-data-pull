@@ -1,9 +1,15 @@
 # Hardened production compose. Image is built+pushed by CI (deploy.sh pins a
 # :sha-<short> tag). The SQLite cache lives on a host volume seeded by the
 # refresh job; the root FS is read-only with the data dir writable for WAL.
+#
+# Routing/TLS is handled by the existing Traefik instance on this VPS via the
+# labels below — the container exposes no host port, only the `traefik` network.
+# This file ends up on the VPS at /srv/portal-apps/franklin-housing/docker-compose.yml.
 services:
   app:
-    image: ghcr.io/OWNER/franklin-housing:latest
+    # The auto-deploy workflow rewrites this tag to a sha-<short> on every push
+    # to main. The :latest fallback is what's checked in; first deploy pins it.
+    image: ghcr.io/crxnit/franklin-county-data-pull:latest
     restart: unless-stopped
     init: true
     read_only: true
@@ -19,10 +25,23 @@ services:
       FH_RATE_LIMIT: ${FH_RATE_LIMIT:-120/minute}
     volumes:
       - ./data:/data        # chown 1000:1000 on the host; holds webapp.sqlite + WAL
-    ports:
-      - "127.0.0.1:8000:8000"   # front with a TLS reverse proxy (Traefik/Caddy/nginx)
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/api/health').read() else 1)"]
       interval: 30s
       timeout: 4s
       retries: 3
+    networks:
+      - traefik
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik"
+      - "traefik.http.routers.franklin-housing.rule=Host(`7518.jjocapps.com`)"
+      - "traefik.http.routers.franklin-housing.entrypoints=websecure"
+      - "traefik.http.routers.franklin-housing.tls=true"
+      - "traefik.http.routers.franklin-housing.tls.certresolver=letsencrypt"
+      - "traefik.http.services.franklin-housing.loadbalancer.server.port=8000"
+
+networks:
+  traefik:
+    external: true
+    name: traefik

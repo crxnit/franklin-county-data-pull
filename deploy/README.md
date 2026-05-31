@@ -24,11 +24,14 @@ Use `deploy/docker-compose.prod.yml`. Required env in `/srv/portal-apps/franklin
 
 ```
 FH_AUTH_SECRET=<the shared password>
-FH_CORS_ORIGINS=https://your-domain
+FH_CORS_ORIGINS=https://7518.jjocapps.com
 ```
 
 - The `./data` dir must be `chown 1000:1000` and seeded once: `docker compose run --rm app python -m server.jobs.refresh`.
-- Front the container with a TLS reverse proxy (Traefik/Caddy/nginx); it listens on 127.0.0.1:8000.
+- Routing/TLS is handled by the host's existing **Traefik** instance via labels in
+  the compose file (router `franklin-housing`, Host `7518.jjocapps.com`, entrypoint
+  `websecure`, certresolver `letsencrypt`, network `traefik`). The container
+  publishes no host port.
 
 ### Daily data refresh (host cron)
 
@@ -44,16 +47,17 @@ invalidates automatically when `pull_meta` advances.
 
 ## CI/CD
 
-Wire push-to-deploy with the **`ci-cd-pipeline` skill** (JJOC pipeline): GitHub
-Actions → GHCR → locked-down SSH → `deploy.sh` → Trivy HIGH/CRITICAL gate →
-`curl /api/health` smoke test. Adapt the CI step to run `ruff check && pytest`.
-Add the restic-to-S3 backup section for the stateful SQLite DB (snapshot via
-`sqlite3 .backup` for a consistent copy under WAL).
+Push-to-deploy is **wired** (JJOC pipeline): `.github/workflows/{ci,deploy}.yml`
+→ GHCR → locked-down SSH (`deploy/vps-deploy.sh` installed as `deploy.sh`) →
+Trivy HIGH/CRITICAL gate → `curl /api/health` smoke test. CI runs
+`ruff check && pytest`. The image builds for **linux/arm64** (this VPS is arm64;
+GitHub runners are amd64, so QEMU is used). No backups: `webapp.sqlite` is a
+derived cache the refresh job rebuilds from the county API nightly.
 
 Post-deploy smoke (beyond `/api/health`) — assert the pricing math still works:
 
 ```bash
 curl -fsS -H "Authorization: Bearer $FH_AUTH_SECRET" \
-  "https://your-domain/api/report?address=7518+whigham+ct" \
+  "https://7518.jjocapps.com/api/report?address=7518+whigham+ct" \
   | python3 -c "import sys,json; a=json.load(sys.stdin)['estimate']['anchor']['value']; assert 480000<=a<=560000, a; print('ok', a)"
 ```

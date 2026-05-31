@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+# Opt into Node 24 for the JS-action runtime (becomes default June 2026).
+# Silences the deprecation warning on each run.
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
+jobs:
+  build:
+    name: Lint & test (library + server)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install deps
+        # Runtime deps + dev-only test/lint tools (pytest needs httpx for
+        # FastAPI's TestClient). The CLI core itself is zero-dep.
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r server/requirements.txt
+          pip install ruff==0.15.15 pytest==9.0.3 httpx==0.28.1
+
+      - name: Lint
+        run: ruff check
+
+      - name: Test
+        run: pytest server/tests franklin_housing/tests
+
+  docker:
+    name: Docker image builds
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      # Verify the Dockerfile still builds end-to-end. No push — the deploy
+      # workflow builds+pushes the real arm64 image. This job builds for the
+      # runner's native arch (amd64) for speed; correctness-only.
+      - name: Build image (no push)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          load: false
+          platforms: linux/amd64
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

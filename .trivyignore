@@ -1,0 +1,13 @@
+# Trivy CVE allowlist. Each line is either:
+#   CVE-YYYY-NNNNN
+#   CVE-YYYY-NNNNN exp:YYYY-MM-DD     (with expiration — recommended)
+# A blank entry never expires. Add a date so we revisit allowlisted CVEs
+# instead of letting them sit forever.
+#
+# Add an entry only after you have:
+#   1. Read the advisory and the affected version range.
+#   2. Confirmed the vulnerable code path is unreachable in this app
+#      (or that the upstream has no fix and you have mitigations).
+#   3. Documented the reasoning in the commit that adds the entry.
+#
+# Empty for now — start clean and add entries as needed.

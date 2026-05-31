@@ -1,0 +1,171 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.gitignore'
+      - 'LICENSE'
+  workflow_dispatch:
+
+# Serialize deploys but don't cancel an in-flight one — interrupting a deploy
+# mid-stream is worse than queuing the next commit behind it.
+concurrency:
+  group: deploy-main
+  cancel-in-progress: false
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+  IMAGE_NAME: ghcr.io/${{ github.repository }}
+
+jobs:
+  ci:
+    name: Lint & test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r server/requirements.txt
+          pip install ruff==0.15.15 pytest==9.0.3 httpx==0.28.1
+
+      - run: ruff check
+      - run: pytest server/tests franklin_housing/tests
+
+  build-and-push:
+    name: Build & push ARM64 image
+    needs: ci
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=latest
+            type=sha,prefix=sha-,format=short
+
+      - name: Build and push (linux/arm64)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  scan-image:
+    name: Scan image for HIGH/CRITICAL CVEs
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GHCR (so Trivy can pull the private image)
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compute short SHA
+        id: sha
+        run: echo "short=${GITHUB_SHA:0:7}" >> "$GITHUB_OUTPUT"
+
+      - name: Scan image with Trivy
+        # ignore-unfixed=true: don't fail the build on CVEs that have no fix
+        # available — those would otherwise block every deploy with no action
+        # we can take. We still see fixable HIGH/CRITICAL findings, which is
+        # the actionable signal.
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: ${{ env.IMAGE_NAME }}:sha-${{ steps.sha.outputs.short }}
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: '1'
+          format: table
+          vuln-type: 'os,library'
+          trivyignores: '.trivyignore'
+        env:
+          # Cache the vuln DB across runs to avoid rate-limit issues from
+          # ghcr.io/aquasecurity/trivy-db.
+          TRIVY_DB_REPOSITORY: ghcr.io/aquasecurity/trivy-db
+          TRIVY_JAVA_DB_REPOSITORY: ghcr.io/aquasecurity/trivy-java-db
+          # The runner is amd64 but our image is arm64-only — without this
+          # Trivy looks for an amd64 variant in the manifest and fails.
+          TRIVY_PLATFORM: linux/arm64
+
+  deploy:
+    name: Deploy to VPS
+    needs: scan-image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-auth-sock: /tmp/ssh-auth.sock
+          ssh-private-key: ${{ secrets.VPS_SSH_KEY }}
+
+      - name: Pin VPS host key
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "${{ secrets.VPS_KNOWN_HOSTS }}" >> ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
+      - name: Trigger pinned-SHA deploy on VPS
+        # The deploy SSH key on the VPS is locked to
+        # /srv/portal-apps/franklin-housing/deploy.sh via the authorized_keys
+        # `command="sudo ..."` restriction + sudoers NOPASSWD. We pass the SHA
+        # tag as $SSH_ORIGINAL_COMMAND; deploy.sh validates it and pulls that
+        # exact image — never a mutable :latest tag.
+        run: |
+          SHORT_SHA="${GITHUB_SHA:0:7}"
+          ssh -p "${{ secrets.VPS_PORT }}" "${{ secrets.VPS_HOST }}" "sha-${SHORT_SHA}"
+
+      - name: Smoke test
+        run: |
+          set -eu
+          for i in 1 2 3 4 5 6; do
+            if curl -fsS --max-time 5 https://7518.jjocapps.com/api/health | grep -q '"ok":true'; then
+              echo "Health OK on attempt $i"
+              exit 0
+            fi
+            echo "Health attempt $i failed; retrying in 5s"
+            sleep 5
+          done
+          echo "Smoke test failed after 6 attempts."
+          echo "To roll back: ssh into the VPS, edit /srv/portal-apps/franklin-housing/docker-compose.yml"
+          echo "to use a previous sha-* tag from ghcr.io, then 'sudo docker compose up -d app'."
+          exit 1

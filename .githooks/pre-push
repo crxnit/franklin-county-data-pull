@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+# Pre-push hook: when pushing to main, run lint and tests locally first.
+# A failure aborts the push, preventing a broken commit from triggering a
+# bad deploy. Push to other branches passes through untouched.
+#
+# Activated by `git config --local core.hooksPath .githooks`.
+set -e
+
+push_to_main=0
+while IFS=' ' read -r _local_ref _local_sha remote_ref _remote_sha; do
+  if [[ "$remote_ref" == "refs/heads/main" ]]; then
+    push_to_main=1
+  fi
+done
+
+if (( ! push_to_main )); then
+  exit 0
+fi
+
+echo "[pre-push] Pushing to main — running ruff + pytest first..."
+
+# Backend deps (ruff, pytest) live in the project .venv; prefer it, fall back
+# to whatever is on PATH so the hook still works in a bare shell.
+BIN=""
+if [[ -x .venv/bin/ruff ]]; then
+  BIN=".venv/bin/"
+fi
+
+"${BIN}ruff" check
+"${BIN}pytest" server/tests franklin_housing/tests
+echo "[pre-push] All checks passed. Proceeding with push."
