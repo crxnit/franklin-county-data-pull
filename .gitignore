@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+# data artifacts (any data/ dir, incl. deploy/data)
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+data/*.csv
+data/*.png
+.venv/
+.env
+frontend/node_modules/
+frontend/dist/
+# editor / OS / runtime cruft
+.DS_Store
+.claude/

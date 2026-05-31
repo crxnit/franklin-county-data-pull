@@ -1,0 +1,15 @@
+# Lint config for the Franklin housing project (backend + library).
+line-length = 100
+target-version = "py310"
+extend-exclude = [".venv", "frontend", "data"]
+
+[lint]
+# pyflakes (F), pycodestyle errors (E) + warnings (W), isort (I), pyupgrade (UP), bugbear (B)
+select = ["F", "E", "W", "I", "UP", "B"]
+# E501: intentional long lines (URLs, tabular comments).
+# B008: Depends()/Query() in argument defaults is the required FastAPI idiom.
+ignore = ["E501", "B008"]
+
+[lint.per-file-ignores]
+# scripts and the matplotlib report are one-off utilities
+"scripts/*" = ["E402"]

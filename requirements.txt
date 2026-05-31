@@ -1,0 +1,5 @@
+# Core pipeline requires ZERO third-party packages (Python 3.10+ stdlib only):
+#   urllib, sqlite3, csv, statistics, argparse, json, logging.
+#
+# Optional — only needed for `--plots` (distribution PNGs):
+matplotlib>=3.7 ; extra == "plots"
