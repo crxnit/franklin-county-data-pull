@@ -105,3 +105,17 @@ Next steps / open questions:
 - Env note: Docker here runs via **Colima** (`colima start`), not Docker Desktop.
 
 See **WEBAPP.md** (dev/run, API contract) and **deploy/README.md** (hosting).
+
+## Session log — 2026-05-30: frontend UI/QA pass + GitHub push
+
+State: ran `/ui-qa-review` over `frontend/` and **resolved every finding** (1 High, 10 Medium, 9 Low) in three phases. Production build (`npm run build` in `frontend/`) passes; CSS shrank slightly after the dead-rule prune. Merged to `main` (ff) and pushed.
+
+Changes made:
+- **a11y (the High + most Mediums):** `AddressSearch` now a real combobox — keyboard nav (arrows/Enter/Esc), `role=listbox/option`, `aria-activedescendant`, and labelable via new `id`/`ariaLabel` props; all view `<label>`s associated to inputs via `htmlFor`/`id`; password gate input got `aria-label`/`autoComplete`.
+- **New `frontend/src/theme.js`** — single source for Recharts colors (`COLORS`, mirrors CSS `:root`) + shared `TOOLTIP_STYLE`; `charts.jsx` no longer hardcodes/duplicates the palette. Recharts can't read CSS vars, so theme.js and `styles.css :root` must be kept in sync by hand.
+- **Render safety:** optional-chained reachable null derefs (`EstimateCard` anchor, `ReportView` band) and falsy-`0` chart guards.
+- **Cleanup:** removed dead code (`usd0`, `.good`/`--good`, orphaned `a{}`/`:disabled` CSS, unused `getToken` import); `CompTunerView` now coerces `subject_sqft` at the handler (consistent numeric form state) and drops `address` from the request body; `App.jsx` `VIEWS` stores component refs not pre-instantiated elements; `api.js` query limits hoisted to named constants.
+
+Repo: now pushed to **private GitHub repo `crxnit/franklin-county-data-pull`** (remote `origin`, `main` tracks `origin/main`). First time this project had a remote.
+
+Open: ~555 kB Recharts bundle still unsplit (pre-existing TODO, untouched). No new TODOs.
