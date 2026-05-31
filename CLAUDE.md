@@ -100,11 +100,28 @@ Known issues / TODOs:
 - Backend runtime deps live in `.venv` (`server/requirements.txt`); the CLI core remains zero-dep.
 
 Next steps / open questions:
-- Wire the JJOC `ci-cd-pipeline` skill to a real VPS (needs server/domain details).
+- ~~Wire the JJOC `ci-cd-pipeline` skill to a real VPS~~ **DONE 2026-05-31** — live at https://7518.jjocapps.com (see session log below).
 - Fast-follows: throttled true-VALID enrichment worker surfaced in the UI; ETag/Cache-Control on hot endpoints; optional broadening beyond Dublin CSD (switch to per-neighborhood lazy cleaning + FTS5 if going all-Franklin ~291k).
 - Env note: Docker here runs via **Colima** (`colima start`), not Docker Desktop.
 
 See **WEBAPP.md** (dev/run, API contract) and **deploy/README.md** (hosting).
+
+## Session log — 2026-05-31: deployed the webapp (JJOC push-to-deploy)
+
+State: **LIVE at https://7518.jjocapps.com** — password-gated, valid LE cert, 13,667 Dublin SFR parcels seeded, daily refresh cron (07:00 UTC). Push-to-deploy pipeline fully green end-to-end.
+
+Pipeline (files added): `.github/workflows/{ci,deploy}.yml`, `.githooks/pre-push` (ruff+pytest; activate with `git config --local core.hooksPath .githooks`), `.trivyignore`, `deploy/vps-deploy.sh`, `deploy/traefik/7518.jjocapps.com.yml`. Flow: push `main` → ruff+pytest → build+push **linux/arm64** to GHCR → Trivy HIGH/CRITICAL → locked-down SSH → `deploy.sh` (sed-pins `:sha-<short>`, compose pull+up) → `/api/health` smoke.
+
+VPS: `webproxy.ai.jjocllc.com:4321`, user `john` (passwordless sudo, NOT in docker group → use `sudo`). App dir `/srv/portal-apps/franklin-housing` (root:root 0750 — `sudo` to cd). `FH_AUTH_SECRET`/`FH_CORS_ORIGINS` in root-owned `.env` (mode 0600). GHCR pull auth already present on the host (other crxnit apps). Deploy key `~/.ssh/franklin-housing-deploy` (command-restricted in authorized_keys + sudoers `franklin-housing-deploy`); lockdown verified (no shell, injection rejected). GH secrets set: `VPS_HOST/PORT/SSH_KEY/KNOWN_HOSTS`.
+
+Three gotchas hit (now fixed — see memory `deploy-pipeline.md`):
+- **arm64 build hung ~1h** under QEMU on the Node/Vite stage. Fix: `FROM --platform=$BUILDPLATFORM node:20-alpine` for the web stage (npm/Vite run native amd64; dist/ is arch-independent). Build → ~75s.
+- **Actions blocked** (every job fails ~2s, no steps/logs) = Free-tier private-repo minutes/spending-limit exhausted. Fix: made the repo **PUBLIC** (Actions free; app stays gated). Confirmed no secrets in git first. *(Repo was private before this session — flip back only after raising the Actions limit.)*
+- **Traefik on this VPS uses the FILE provider, not docker** → `traefik.*` compose labels are silently ignored; container was healthy but Traefik served its default self-signed cert. Fix: dynamic route YAML in `/srv/portal/traefik/dynamic/` (repo copy at `deploy/traefik/7518.jjocapps.com.yml`) → Host `7518.jjocapps.com` → `franklin-housing-app-1:8000` on the `traefik` net, TLS `letsencrypt` (HTTP-01). Compose keeps `traefik` network membership but no labels.
+
+Decisions: no backups (`webapp.sqlite` is a derived cache the refresh job rebuilds). Oracle smoke confirmed live: authed `/api/report?address=7518+whigham+ct` → anchor **$522,732**.
+
+Open: repo is now public (revisit if privacy wanted); gate secret is a random base64 string — rotate via VPS `.env` + `docker compose up -d app` if a typeable one is preferred.
 
 ## Session log — 2026-05-30: frontend UI/QA pass + GitHub push
 
