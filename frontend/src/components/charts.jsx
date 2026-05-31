@@ -3,26 +3,28 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ReferenceLine, ReferenceArea,
   ScatterChart, Scatter, LineChart, Line, ResponsiveContainer, CartesianGrid, ZAxis,
 } from "recharts";
+import { COLORS, TOOLTIP_STYLE } from "../theme.js";
 
-const AX = { stroke: "#9aa3b2", fontSize: 12 };
-const GRID = "#2a2f3a";
+const AX = { stroke: COLORS.muted, fontSize: 12 };
+const GRID = COLORS.line;
 
 export function PpsfHistogram({ histogram, median }) {
   if (!histogram?.length) return null;
   const data = histogram.map((h) => ({ label: `${h.lo}`, count: h.count, lo: h.lo, hi: h.hi }));
+  const hasMedian = median != null && median > 0;
   return (
     <div className="panel">
-      <p className="chart-title">$/sqft distribution{median ? ` — median $${median.toFixed(0)}` : ""}</p>
+      <p className="chart-title">$/sqft distribution{hasMedian ? ` — median $${median.toFixed(0)}` : ""}</p>
       <ResponsiveContainer width="100%" height={240}>
         <BarChart data={data}>
           <CartesianGrid stroke={GRID} vertical={false} />
           <XAxis dataKey="label" tick={AX} />
           <YAxis tick={AX} />
-          <Tooltip contentStyle={{ background: "#20242e", border: "1px solid #2a2f3a" }}
+          <Tooltip contentStyle={TOOLTIP_STYLE}
                    formatter={(v) => [`${v} sales`, ""]}
                    labelFormatter={(l) => `$${l}+/sqft`} />
-          {median && <ReferenceLine x={`${Math.round(median)}`} stroke="#dd8452" />}
-          <Bar dataKey="count" fill="#4c8bf5" />
+          {hasMedian && <ReferenceLine x={`${Math.round(median)}`} stroke={COLORS.accent2} />}
+          <Bar dataKey="count" fill={COLORS.accent} />
         </BarChart>
       </ResponsiveContainer>
     </div>
@@ -32,9 +34,10 @@ export function PpsfHistogram({ histogram, median }) {
 export function PriceVsSqftScatter({ points, subjectSqft, band = 0.15 }) {
   if (!points?.length) return null;
   const data = points.filter((p) => p.sqft && p.price).map((p) => ({ x: p.sqft, y: p.price, address: p.address }));
+  const hasSubject = subjectSqft != null && subjectSqft > 0;
   return (
     <div className="panel">
-      <p className="chart-title">Price vs sqft{subjectSqft ? ` — subject ${subjectSqft.toLocaleString()} sqft` : ""}</p>
+      <p className="chart-title">Price vs sqft{hasSubject ? ` — subject ${subjectSqft.toLocaleString()} sqft` : ""}</p>
       <ResponsiveContainer width="100%" height={300}>
         <ScatterChart margin={{ left: 10, right: 10, top: 10, bottom: 5 }}>
           <CartesianGrid stroke={GRID} />
@@ -42,14 +45,14 @@ export function PriceVsSqftScatter({ points, subjectSqft, band = 0.15 }) {
           <YAxis type="number" dataKey="y" name="price" tick={AX}
                  tickFormatter={(v) => `$${Math.round(v / 1000)}k`} />
           <ZAxis range={[40, 40]} />
-          <Tooltip contentStyle={{ background: "#20242e", border: "1px solid #2a2f3a" }}
+          <Tooltip contentStyle={TOOLTIP_STYLE}
                    formatter={(v, n) => (n === "price" ? `$${v.toLocaleString()}` : v.toLocaleString())} />
-          {subjectSqft && (
+          {hasSubject && (
             <ReferenceArea x1={subjectSqft * (1 - band)} x2={subjectSqft * (1 + band)}
-                           fill="#dd8452" fillOpacity={0.12} />
+                           fill={COLORS.accent2} fillOpacity={0.12} />
           )}
-          {subjectSqft && <ReferenceLine x={subjectSqft} stroke="#dd8452" strokeDasharray="5 4" />}
-          <Scatter data={data} fill="#4c8bf5" fillOpacity={0.6} />
+          {hasSubject && <ReferenceLine x={subjectSqft} stroke={COLORS.accent2} strokeDasharray="5 4" />}
+          <Scatter data={data} fill={COLORS.accent} fillOpacity={0.6} />
         </ScatterChart>
       </ResponsiveContainer>
     </div>
@@ -66,8 +69,8 @@ export function TrendChart({ trend }) {
           <CartesianGrid stroke={GRID} vertical={false} />
           <XAxis dataKey="period" tick={AX} minTickGap={24} />
           <YAxis tick={AX} domain={["auto", "auto"]} />
-          <Tooltip contentStyle={{ background: "#20242e", border: "1px solid #2a2f3a" }} />
-          <Line type="monotone" dataKey="median_ppsf" stroke="#4c8bf5" dot={false} strokeWidth={2} />
+          <Tooltip contentStyle={TOOLTIP_STYLE} />
+          <Line type="monotone" dataKey="median_ppsf" stroke={COLORS.accent} dot={false} strokeWidth={2} />
         </LineChart>
       </ResponsiveContainer>
     </div>

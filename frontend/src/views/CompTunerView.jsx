@@ -23,7 +23,7 @@ export default function CompTunerView() {
     clearTimeout(timer.current);
     timer.current = setTimeout(async () => {
       setErr("");
-      try { setResult(await api.comps({ ...f, subject_sqft: Number(f.subject_sqft) })); }
+      try { setResult(await api.comps(f)); }
       catch (e) { setErr(e.message); }
     }, 300);
     return () => clearTimeout(timer.current);
@@ -32,39 +32,41 @@ export default function CompTunerView() {
   function onPick(h) {
     setSeeded(true);
     setF((p) => ({ ...p, nbhdcd: h.nbhdcd, subject_sqft: h.sqft || p.subject_sqft,
-      beds: h.beds ?? p.beds, baths: h.baths ?? p.baths, year_built: h.year_built ?? p.year_built,
-      address: h.address }));
+      beds: h.beds ?? p.beds, baths: h.baths ?? p.baths, year_built: h.year_built ?? p.year_built }));
   }
 
   return (
     <div>
       <div className="panel">
-        <label>Seed from a property (sets neighborhood + attributes)</label>
-        <AddressSearch onPick={onPick} />
+        <label htmlFor="tuner-seed">Seed from a property (sets neighborhood + attributes)</label>
+        <AddressSearch id="tuner-seed" ariaLabel="Seed property address" onPick={onPick} />
       </div>
 
       {seeded && (
         <div className="panel">
           <div className="row">
-            <div><label>Sqft</label><input type="number" value={f.subject_sqft} onChange={(e) => set("subject_sqft", e.target.value)} /></div>
-            <div><label>Beds</label><input type="number" value={f.beds} onChange={(e) => set("beds", Number(e.target.value))} /></div>
-            <div><label>Baths</label><input type="number" value={f.baths} onChange={(e) => set("baths", Number(e.target.value))} /></div>
-            <div><label>Year built</label><input type="number" value={f.year_built} onChange={(e) => set("year_built", Number(e.target.value))} /></div>
+            <div><label htmlFor="tuner-sqft">Sqft</label><input id="tuner-sqft" type="number" value={f.subject_sqft} onChange={(e) => set("subject_sqft", Number(e.target.value))} /></div>
+            <div><label htmlFor="tuner-beds">Beds</label><input id="tuner-beds" type="number" value={f.beds} onChange={(e) => set("beds", Number(e.target.value))} /></div>
+            <div><label htmlFor="tuner-baths">Baths</label><input id="tuner-baths" type="number" value={f.baths} onChange={(e) => set("baths", Number(e.target.value))} /></div>
+            <div><label htmlFor="tuner-year">Year built</label><input id="tuner-year" type="number" value={f.year_built} onChange={(e) => set("year_built", Number(e.target.value))} /></div>
           </div>
           <div className="row" style={{ marginTop: 12 }}>
             <div>
-              <label>Size band ±{Math.round(f.size_band * 100)}%</label>
-              <div className="slider-row"><input type="range" min="5" max="40" value={f.size_band * 100}
+              <label htmlFor="tuner-band">Size band ±{Math.round(f.size_band * 100)}%</label>
+              <div className="slider-row"><input id="tuner-band" type="range" min="5" max="40" value={f.size_band * 100}
+                aria-label={`Size band ±${Math.round(f.size_band * 100)} percent`}
                 onChange={(e) => set("size_band", Number(e.target.value) / 100)} /></div>
             </div>
             <div>
-              <label>Comps shown: {f.comp_count}</label>
-              <div className="slider-row"><input type="range" min="3" max="30" value={f.comp_count}
+              <label htmlFor="tuner-comps">Comps shown: {f.comp_count}</label>
+              <div className="slider-row"><input id="tuner-comps" type="range" min="3" max="30" value={f.comp_count}
+                aria-label={`Comps shown: ${f.comp_count}`}
                 onChange={(e) => set("comp_count", Number(e.target.value))} /></div>
             </div>
             <div>
-              <label>Window: {f.months_back} mo</label>
-              <div className="slider-row"><input type="range" min="6" max="60" step="6" value={f.months_back}
+              <label htmlFor="tuner-window">Window: {f.months_back} mo</label>
+              <div className="slider-row"><input id="tuner-window" type="range" min="6" max="60" step="6" value={f.months_back}
+                aria-label={`Window: ${f.months_back} months`}
                 onChange={(e) => set("months_back", Number(e.target.value))} /></div>
             </div>
           </div>
@@ -78,7 +80,7 @@ export default function CompTunerView() {
           <div className="row">
             <EstimateCard estimate={result.estimate} subject={result.subject} />
             <PriceVsSqftScatter points={result.comps.map((c) => ({ sqft: c.sqft, price: c.price, address: c.address }))}
-                                subjectSqft={Number(f.subject_sqft)} band={f.size_band} />
+                                subjectSqft={f.subject_sqft} band={f.size_band} />
           </div>
           <CompTable comps={result.comps} />
         </>

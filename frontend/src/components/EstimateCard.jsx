@@ -2,7 +2,7 @@ import React from "react";
 import { usd, ppsf } from "../format.js";
 
 export default function EstimateCard({ estimate, subject }) {
-  if (!estimate || estimate.anchor.value == null)
+  if (!estimate || estimate.anchor?.value == null)
     return <div className="panel muted">Not enough comparable sales to estimate.</div>;
   const a = estimate.anchor;
   return (

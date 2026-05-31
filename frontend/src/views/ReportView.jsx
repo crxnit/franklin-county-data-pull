@@ -27,8 +27,8 @@ export default function ReportView() {
   return (
     <div>
       <div className="panel">
-        <label>Property address</label>
-        <AddressSearch onPick={(h) => load(h.address)} />
+        <label htmlFor="report-address">Property address</label>
+        <AddressSearch id="report-address" onPick={(h) => load(h.address)} />
         <p className="muted" style={{ marginBottom: 0 }}>
           Pick your home to get a comp-based valuation from Franklin County sales.
         </p>
@@ -64,7 +64,7 @@ export default function ReportView() {
 
           {nbhd && (
             <div className="row">
-              <PriceVsSqftScatter points={nbhd.scatter} subjectSqft={report.subject.sqft} band={report.estimate.band} />
+              <PriceVsSqftScatter points={nbhd.scatter} subjectSqft={report.subject.sqft} band={report.estimate?.band ?? 0.15} />
               <PpsfHistogram histogram={nbhd.histogram} median={nbhd.summary.median_ppsf} />
             </div>
           )}

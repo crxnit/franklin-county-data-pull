@@ -19,6 +19,7 @@ export default function NeighborhoodView() {
 
   useEffect(() => {
     if (!sel) return;
+    setErr("");
     setData(null);
     api.neighborhood(sel).then(setData).catch((e) => setErr(e.message));
   }, [sel]);
@@ -26,8 +27,8 @@ export default function NeighborhoodView() {
   return (
     <div>
       <div className="panel">
-        <label>Appraiser neighborhood</label>
-        <select value={sel} onChange={(e) => setSel(e.target.value)}>
+        <label htmlFor="nbhd-select">Appraiser neighborhood</label>
+        <select id="nbhd-select" value={sel} onChange={(e) => setSel(e.target.value)}>
           {list.map((n) => (
             <option key={n.nbhdcd} value={n.nbhdcd}>
               {n.nbhdcd} — {n.n_sales} sales · median {ppsf(n.median_ppsf)}/sqft · {usd(n.median_price)}

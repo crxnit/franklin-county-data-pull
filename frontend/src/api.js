@@ -3,6 +3,10 @@
 
 const TOKEN_KEY = "fh_token";
 
+// Tunable result limits for the read endpoints.
+const SEARCH_LIMIT = 8;   // address autocomplete suggestions
+const REPORT_COMPS = 12;  // comps returned with a pricing report
+
 export function getToken() {
   return localStorage.getItem(TOKEN_KEY) || "";
 }
@@ -35,8 +39,8 @@ export class ApiError extends Error {
 export const api = {
   health: () => req("/health"),
   meta: () => req("/meta"),
-  searchAddress: (q) => req(`/address/search?q=${encodeURIComponent(q)}&limit=8`),
-  report: (address) => req(`/report?address=${encodeURIComponent(address)}&comps=12`),
+  searchAddress: (q) => req(`/address/search?q=${encodeURIComponent(q)}&limit=${SEARCH_LIMIT}`),
+  report: (address) => req(`/report?address=${encodeURIComponent(address)}&comps=${REPORT_COMPS}`),
   comps: (body) => req("/comps", { method: "POST", body: JSON.stringify(body) }),
   neighborhoods: () => req("/neighborhoods"),
   neighborhood: (nbhdcd) => req(`/neighborhoods/${encodeURIComponent(nbhdcd)}`),

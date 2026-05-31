@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from "react";
-import { api, getToken, setToken, ApiError } from "./api.js";
+import { api, setToken, ApiError } from "./api.js";
 import ReportView from "./views/ReportView.jsx";
 import CompTunerView from "./views/CompTunerView.jsx";
 import NeighborhoodView from "./views/NeighborhoodView.jsx";
 
 const VIEWS = {
-  report: { label: "Pricing report", el: <ReportView /> },
-  tuner: { label: "Comp tuner", el: <CompTunerView /> },
-  neighborhood: { label: "Neighborhoods", el: <NeighborhoodView /> },
+  report: { label: "Pricing report", Comp: ReportView },
+  tuner: { label: "Comp tuner", Comp: CompTunerView },
+  neighborhood: { label: "Neighborhoods", Comp: NeighborhoodView },
 };
 
 export default function App() {
@@ -29,20 +29,23 @@ export default function App() {
   if (authed === null) return <div className="app"><p className="muted">Loading…</p></div>;
 
   if (authed === false) {
+    const submit = () => { setToken(pw); check(); };
     return (
       <div className="app">
         <div className="gate panel">
           <h1>Franklin Housing</h1>
-          <p className="muted">Enter the access password.</p>
-          <input type="password" value={pw} onChange={(e) => setPw(e.target.value)}
-                 onKeyDown={(e) => e.key === "Enter" && (setToken(pw), check())} />
-          <button className="primary" style={{ marginTop: 10 }}
-                  onClick={() => { setToken(pw); check(); }}>Enter</button>
+          <p className="muted" id="gate-help">Enter the access password.</p>
+          <input type="password" value={pw} aria-label="Access password"
+                 aria-describedby="gate-help" autoComplete="current-password"
+                 onChange={(e) => setPw(e.target.value)}
+                 onKeyDown={(e) => e.key === "Enter" && submit()} />
+          <button className="primary" style={{ marginTop: 10 }} onClick={submit}>Enter</button>
         </div>
       </div>
     );
   }
 
+  const ActiveView = VIEWS[view].Comp;
   return (
     <div className="app">
       <header className="top">
@@ -56,7 +59,7 @@ export default function App() {
           ))}
         </nav>
       </header>
-      {VIEWS[view].el}
+      <ActiveView />
     </div>
   );
 }
