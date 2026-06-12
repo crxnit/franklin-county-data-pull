@@ -20,12 +20,18 @@ fi
 echo "[pre-push] Pushing to main — running ruff + pytest first..."
 
 # Backend deps (ruff, pytest) live in the project .venv; prefer it, fall back
-# to whatever is on PATH so the hook still works in a bare shell.
+# to whatever is on PATH so the hook still works in a bare shell. pytest runs
+# via `python -m` so it survives a moved .venv (console-script shebangs embed
+# an absolute interpreter path; `python -m` and the native ruff binary don't).
 BIN=""
+PY="python"
 if [[ -x .venv/bin/ruff ]]; then
   BIN=".venv/bin/"
 fi
+if [[ -x .venv/bin/python ]]; then
+  PY=".venv/bin/python"
+fi
 
 "${BIN}ruff" check
-"${BIN}pytest" server/tests franklin_housing/tests
+"$PY" -m pytest server/tests franklin_housing/tests
 echo "[pre-push] All checks passed. Proceeding with push."
