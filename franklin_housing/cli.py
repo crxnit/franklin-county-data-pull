@@ -25,6 +25,7 @@ from . import analyze, clean
 from .cache import Cache
 from .client import ArcGISClient
 from .config import Config
+from .snapshot import snapshot_db
 
 
 def _build_config(args) -> Config:
@@ -135,6 +136,16 @@ def main(argv=None) -> int:
         print(f"Pulling sales… where: {where}")
         print(f"  server reports {expected:,} matching parcels")
         rows = list(client.query_all(where))
+        # Snapshot the prior cache before clearing, so `python -m scripts.db_diff
+        # diff` can report what this pull changed. Never let it block the refresh.
+        try:
+            snap = snapshot_db(cfg.db_path)
+            if snap:
+                print(f"  baseline snapshot -> {snap}")
+        except Exception:
+            logging.getLogger(__name__).warning(
+                "baseline snapshot failed (continuing)", exc_info=True
+            )
         cache.clear()
         cache.save(rows, where)
         print(f"  cached {len(rows):,} rows")

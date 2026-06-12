@@ -141,10 +141,10 @@ Open: ~555 kB Recharts bundle still unsplit (pre-existing TODO, untouched). No n
 
 Refreshed both local caches from the county API (webapp.sqlite 13,667→13,668 parcels; CLI franklin_housing.sqlite re-pulled, 898 comps) — current through sale date 2026-06-10.
 
-Added before/after diff tooling so refreshes report a true added/removed/changed report (the upsert overwrites in place, so a baseline copy is required):
-- **`server/jobs/snapshot.py`** (stdlib-only) — `snapshot_db()` / `snapshot_path()`; backs a DB up to `data/snapshots/<stem>.baseline.sqlite` via the sqlite backup API. Lives in `server/` (not `scripts/`) because the Dockerfile copies only `franklin_housing/` + `server/` — the prod cron runs `server.jobs.refresh` inside the container, so a `scripts/` import would break it.
-- **`server/jobs/refresh.py`** now snapshots the DB right before `cache.save()` (only on a successful, non-empty pull); snapshot failure is logged, never blocks the refresh.
-- **`scripts/db_diff.py`** — `snapshot` (manual baseline, covers both DBs incl. the CLI DB which `refresh.py` doesn't touch) and `diff` (added/removed/changed by PARCELID; itemizes new/re-priced sales via SALEDATE-or-SALEPRICE deltas, tallies other field changes). Reuses `server.jobs.snapshot` so writer/reader agree on the baseline path.
-- `data/snapshots/` is gitignored (`*.sqlite`). Verified end-to-end: wired refresh logs the baseline line, clean diff = 0 changes, positive test (perturbed baseline) surfaces price-only + valuation changes; ruff clean; 8 server tests pass.
+Added before/after diff tooling so refreshes report a true added/removed/changed report (a refresh replaces rows in place, so a baseline copy is required):
+- **`franklin_housing/snapshot.py`** (stdlib-only) — `snapshot_db()` / `snapshot_path()`; backs a DB up to `data/snapshots/<stem>.baseline.sqlite` via the sqlite backup API. Lives in the **zero-dep core** (next to `cache.py`) so both the CLI and the server can call it without `franklin_housing` depending on `server` (wrong direction) — and it still ships in the image (Dockerfile copies `franklin_housing/`).
+- **`server/jobs/refresh.py`** (webapp, upsert) snapshots before `cache.save()` (only on a successful, non-empty pull). **`franklin_housing/cli.py`** (`--refresh`, clear+save) snapshots before `cache.clear()`. Both wrap it in try/except — a snapshot failure is logged, never blocks the refresh.
+- **`scripts/db_diff.py`** — `snapshot` (manual baseline for both DBs) and `diff` (added/removed/changed by PARCELID; itemizes new/re-priced sales via SALEDATE-or-SALEPRICE deltas, tallies other field changes). Imports the shared `franklin_housing.snapshot` so writer/reader agree on the baseline path.
+- `data/snapshots/` is gitignored (`*.sqlite`). Verified end-to-end: both refresh paths log the baseline line; clean diff = 0; positive test (perturbed baseline) surfaces price-only + valuation changes; real CLI `--refresh` diff caught +3 new parcels (898→901, 24-mo window); ruff clean; 8 server tests pass.
 
-Note: the CLI `--refresh` path is NOT auto-snapshotted (separate entrypoint) — run `python -m scripts.db_diff snapshot` first if you want a CLI-DB diff.
+Workflow: `python -m server.jobs.refresh` (or `python -m franklin_housing --refresh`) then `python -m scripts.db_diff diff`.

@@ -49,7 +49,7 @@ invalidates automatically when `pull_meta` advances.
 
 Before each successful pull, the refresh job copies the current DB to
 `data/snapshots/<db>.baseline.sqlite` (sqlite backup API; see
-`server/jobs/snapshot.py`). To see exactly what a refresh changed
+`franklin_housing/snapshot.py`). To see exactly what a refresh changed
 (added / removed / changed parcels, new & re-priced sales):
 
 ```

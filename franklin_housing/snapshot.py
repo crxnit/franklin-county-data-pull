@@ -1,12 +1,13 @@
 """Baseline snapshot of a parcel DB, taken before a refresh overwrites it.
 
-The refresh upserts in place, so without a copy of the prior state there is
-nothing to diff against. The refresh job writes the baseline here; the
-scripts/db_diff.py reporting tool reads it back. Both must agree on the path,
-so the naming lives in one place: snapshot_path().
+A refresh replaces rows in place (the webapp job upserts; the CLI clears+saves),
+so without a copy of the prior state there is nothing to diff against. The
+writers — server/jobs/refresh.py and the CLI --refresh path — call snapshot_db()
+before re-pulling; the scripts/db_diff.py reporting tool reads the baseline back.
+All must agree on the path, so the naming lives in one place: snapshot_path().
 
-Stdlib only — keeps the refresh job's import surface light and works without
-the backend's third-party deps.
+Stdlib only — lives in the zero-dep core so the CLI can use it without pulling
+in the backend's third-party deps.
 """
 
 from __future__ import annotations

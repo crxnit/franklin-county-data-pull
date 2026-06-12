@@ -24,7 +24,7 @@ import sqlite3
 import sys
 from pathlib import Path
 
-from server.jobs.snapshot import snapshot_db, snapshot_path
+from franklin_housing.snapshot import snapshot_db, snapshot_path
 
 # (live db, table). franklin_housing.sqlite's table is resolved at runtime.
 DBS = [

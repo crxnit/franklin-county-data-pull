@@ -16,9 +16,9 @@ import sys
 from franklin_housing.cache import Cache
 from franklin_housing.client import ArcGISClient
 from franklin_housing.config import Config
+from franklin_housing.snapshot import snapshot_db
 
 from ..settings import get_settings
-from .snapshot import snapshot_db
 
 log = logging.getLogger(__name__)
 
