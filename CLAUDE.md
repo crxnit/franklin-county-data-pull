@@ -136,3 +136,15 @@ Changes made:
 Repo: now pushed to **private GitHub repo `crxnit/franklin-county-data-pull`** (remote `origin`, `main` tracks `origin/main`). First time this project had a remote.
 
 Open: ~555 kB Recharts bundle still unsplit (pre-existing TODO, untouched). No new TODOs.
+
+## Session log — 2026-06-11: data refresh + snapshot/diff tooling
+
+Refreshed both local caches from the county API (webapp.sqlite 13,667→13,668 parcels; CLI franklin_housing.sqlite re-pulled, 898 comps) — current through sale date 2026-06-10.
+
+Added before/after diff tooling so refreshes report a true added/removed/changed report (the upsert overwrites in place, so a baseline copy is required):
+- **`server/jobs/snapshot.py`** (stdlib-only) — `snapshot_db()` / `snapshot_path()`; backs a DB up to `data/snapshots/<stem>.baseline.sqlite` via the sqlite backup API. Lives in `server/` (not `scripts/`) because the Dockerfile copies only `franklin_housing/` + `server/` — the prod cron runs `server.jobs.refresh` inside the container, so a `scripts/` import would break it.
+- **`server/jobs/refresh.py`** now snapshots the DB right before `cache.save()` (only on a successful, non-empty pull); snapshot failure is logged, never blocks the refresh.
+- **`scripts/db_diff.py`** — `snapshot` (manual baseline, covers both DBs incl. the CLI DB which `refresh.py` doesn't touch) and `diff` (added/removed/changed by PARCELID; itemizes new/re-priced sales via SALEDATE-or-SALEPRICE deltas, tallies other field changes). Reuses `server.jobs.snapshot` so writer/reader agree on the baseline path.
+- `data/snapshots/` is gitignored (`*.sqlite`). Verified end-to-end: wired refresh logs the baseline line, clean diff = 0 changes, positive test (perturbed baseline) surfaces price-only + valuation changes; ruff clean; 8 server tests pass.
+
+Note: the CLI `--refresh` path is NOT auto-snapshotted (separate entrypoint) — run `python -m scripts.db_diff snapshot` first if you want a CLI-DB diff.

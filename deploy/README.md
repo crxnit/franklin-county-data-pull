@@ -47,6 +47,18 @@ County data updates Mon–Fri ~7pm ET. Refresh at ~03:00 ET:
 A failed pull keeps the last-good data (upsert, no clear); the API memoization
 invalidates automatically when `pull_meta` advances.
 
+Before each successful pull, the refresh job copies the current DB to
+`data/snapshots/<db>.baseline.sqlite` (sqlite backup API; see
+`server/jobs/snapshot.py`). To see exactly what a refresh changed
+(added / removed / changed parcels, new & re-priced sales):
+
+```
+python -m scripts.db_diff diff
+```
+
+The baseline is overwritten on every refresh, so `diff` always reflects the
+most recent pull. A snapshot failure is logged but never blocks the refresh.
+
 ## CI/CD
 
 Push-to-deploy is **wired** (JJOC pipeline): `.github/workflows/{ci,deploy}.yml`

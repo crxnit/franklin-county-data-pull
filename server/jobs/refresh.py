@@ -18,6 +18,7 @@ from franklin_housing.client import ArcGISClient
 from franklin_housing.config import Config
 
 from ..settings import get_settings
+from .snapshot import snapshot_db
 
 log = logging.getLogger(__name__)
 
@@ -35,6 +36,16 @@ def refresh(db_path: str | None = None) -> int:
     if not rows:
         log.error("refresh pulled 0 rows — keeping existing data, aborting")
         return 0
+
+    # Capture the pre-refresh state so a post-refresh diff is possible. Only
+    # reached on a successful, non-empty pull (we're about to overwrite). Never
+    # let a snapshot problem block the data update.
+    try:
+        snap = snapshot_db(cfg.db_path)
+        if snap:
+            log.info("refresh: baseline snapshot -> %s", snap)
+    except Exception:
+        log.warning("refresh: baseline snapshot failed (continuing)", exc_info=True)
 
     cache = Cache(cfg.db_path)
     try:
