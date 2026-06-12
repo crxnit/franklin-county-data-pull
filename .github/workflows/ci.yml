@@ -43,13 +43,13 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@v4
 
       # Verify the Dockerfile still builds end-to-end. No push — the deploy
       # workflow builds+pushes the real arm64 image. This job builds for the
       # runner's native arch (amd64) for speed; correctness-only.
       - name: Build image (no push)
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           push: false
