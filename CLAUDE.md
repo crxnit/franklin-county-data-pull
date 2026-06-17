@@ -152,3 +152,18 @@ Workflow: `python -m server.jobs.refresh` (or `python -m franklin_housing --refr
 Also (2026-06-12): pushed the above to `main` (live deploy green, oracle health OK), plus two infra fixes:
 - **Pre-push hook** (`.githooks/pre-push`): ran `.venv/bin/pytest` directly, which died on a stale console-script shebang after the repo moved paths (`bad interpreter`). Fixed to `.venv/bin/python -m pytest` (path-independent, like the native ruff binary). Ruff was unaffected because it's a native binary, not a shebang script.
 - **GitHub Actions Node 20 deprecations** — bumped all flagged actions to current Node 24-native majors: checkout v4→v6, setup-python v5→v6, docker/login-action v3→v4, ssh-agent v0.9.0→v0.10.0, docker setup-qemu/buildx v3→v4, metadata v5→v6, build-push v6→v7 (trivy@v0.36.0 already latest). Removed the `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24` env from both workflows — it forced Node 24 but never suppressed the annotation, and was masking that the docker actions were still Node 20 (removing it exposed them; they're now bumped). Verified: full pipeline green on the new versions, zero deprecation annotations remaining (only a harmless transient binfmt cache-reservation notice).
+
+## Session log — 2026-06-17: local data refresh + how to check the live DB
+
+Refreshed both **local** caches from the county API (current through sale date 2026-06-16). No code changes; working tree clean (refresh only writes gitignored `data/`).
+- webapp.sqlite: 13,668 parcels; diff = 49 changed rows (38 new/changed sales incl. fresh 2026-06-16 sales like 3273 RAVELLO DR $1.15M; several `$0` non-market transfers), 10 SITEADDRESS fixes, 2 valuation tweaks. 0 added/removed.
+- CLI franklin_housing.sqlite: 901 comps, 5-in/5-out of the rolling 24-mo window. `$/sqft` still clusters $202–300.
+- Note: `python` isn't on PATH here — use `.venv/bin/python` for `server.jobs.refresh` / `franklin_housing --refresh` / `scripts.db_diff`.
+
+**How to check when the LIVE DB (7518.jjocapps.com) was last updated** — it's rebuilt by the daily 07:00 UTC refresh cron, independent of any local refresh. Three ways, all reading the same `pull_meta` row:
+- `GET /api/meta` (auth-gated) → `last_pull.pulled_at`; every `/api/report` also carries it as `data_as_of`. Token: `FH_AUTH_SECRET` from the VPS `.env`. No-SSH: `curl -s https://7518.jjocapps.com/api/meta -H "Authorization: Bearer $FH_AUTH_SECRET" | jq`.
+- Over SSH, query the DB in the container. **Gotcha: the hardened image has no `sqlite3` CLI** — use the stdlib python instead, and the live DB path is **`/data/webapp.sqlite`** (not `/app/data/`):
+  ```
+  ssh -p 4321 john@webproxy.ai.jjocllc.com "sudo docker exec franklin-housing-app-1 python -c \"import sqlite3; print(sqlite3.connect('/data/webapp.sqlite').execute('SELECT pulled_at,row_count FROM pull_meta ORDER BY id DESC LIMIT 1').fetchone())\""
+  ```
+- Verified live this session: `pulled_at = 2026-06-17T07:00:16+00:00`, 13,667 parcels — cron healthy. (Live 13,667 vs local 13,668 is normal independent-pull drift.)
