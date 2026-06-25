@@ -74,11 +74,13 @@ export function TrendChart({ trend, title = "Median $/sqft by month", showPrice 
                    tickFormatter={(v) => `$${Math.round(v / 1000)}k`} />
           )}
           <Tooltip contentStyle={TOOLTIP_STYLE} />
+          {/* isAnimationActive=false: skip the draw-in animation so the line is
+              fully painted on first frame (no mount flash on tab/slice switch). */}
           <Line yAxisId="ppsf" type="monotone" dataKey="median_ppsf" name="$/sqft"
-                stroke={COLORS.accent} dot={false} strokeWidth={2} />
+                stroke={COLORS.accent} dot={false} strokeWidth={2} isAnimationActive={false} />
           {showPrice && (
             <Line yAxisId="price" type="monotone" dataKey="median_price" name="price"
-                  stroke={COLORS.accent2} dot={false} strokeWidth={2} />
+                  stroke={COLORS.accent2} dot={false} strokeWidth={2} isAnimationActive={false} />
           )}
         </LineChart>
       </ResponsiveContainer>
