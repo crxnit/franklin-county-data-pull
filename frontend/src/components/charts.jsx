@@ -59,18 +59,27 @@ export function PriceVsSqftScatter({ points, subjectSqft, band = 0.15 }) {
   );
 }
 
-export function TrendChart({ trend }) {
+export function TrendChart({ trend, title = "Median $/sqft by month", showPrice = false }) {
   if (!trend?.length) return null;
   return (
     <div className="panel">
-      <p className="chart-title">Median $/sqft by month</p>
+      <p className="chart-title">{title}</p>
       <ResponsiveContainer width="100%" height={240}>
         <LineChart data={trend}>
           <CartesianGrid stroke={GRID} vertical={false} />
           <XAxis dataKey="period" tick={AX} minTickGap={24} />
-          <YAxis tick={AX} domain={["auto", "auto"]} />
+          <YAxis yAxisId="ppsf" tick={AX} domain={["auto", "auto"]} />
+          {showPrice && (
+            <YAxis yAxisId="price" orientation="right" tick={AX} domain={["auto", "auto"]}
+                   tickFormatter={(v) => `$${Math.round(v / 1000)}k`} />
+          )}
           <Tooltip contentStyle={TOOLTIP_STYLE} />
-          <Line type="monotone" dataKey="median_ppsf" stroke={COLORS.accent} dot={false} strokeWidth={2} />
+          <Line yAxisId="ppsf" type="monotone" dataKey="median_ppsf" name="$/sqft"
+                stroke={COLORS.accent} dot={false} strokeWidth={2} />
+          {showPrice && (
+            <Line yAxisId="price" type="monotone" dataKey="median_price" name="price"
+                  stroke={COLORS.accent2} dot={false} strokeWidth={2} />
+          )}
         </LineChart>
       </ResponsiveContainer>
     </div>

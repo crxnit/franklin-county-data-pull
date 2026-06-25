@@ -19,7 +19,7 @@ from slowapi.util import get_remote_address
 
 from .deps import require_auth
 from .repo import ReadRepo
-from .routers import address, comps, meta, neighborhood, report
+from .routers import address, comps, meta, neighborhood, report, trends
 from .settings import Settings, get_settings
 
 
@@ -48,7 +48,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return {"ok": True}
 
     # all other /api routes require the shared secret
-    for r in (meta.router, address.router, report.router, comps.router, neighborhood.router):
+    for r in (meta.router, address.router, report.router, comps.router,
+              neighborhood.router, trends.router):
         app.include_router(r, prefix="/api", dependencies=[Depends(require_auth)])
 
     _mount_spa(app, settings.spa_dir)

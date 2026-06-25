@@ -3,11 +3,13 @@ import { api, setToken, ApiError } from "./api.js";
 import ReportView from "./views/ReportView.jsx";
 import CompTunerView from "./views/CompTunerView.jsx";
 import NeighborhoodView from "./views/NeighborhoodView.jsx";
+import TrendAnalysisView from "./views/TrendAnalysisView.jsx";
 
 const VIEWS = {
   report: { label: "Pricing report", Comp: ReportView },
   tuner: { label: "Comp tuner", Comp: CompTunerView },
   neighborhood: { label: "Neighborhoods", Comp: NeighborhoodView },
+  trends: { label: "Sales trends", Comp: TrendAnalysisView },
 };
 
 export default function App() {

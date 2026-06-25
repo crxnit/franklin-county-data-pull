@@ -21,7 +21,7 @@ import json
 import logging
 import sys
 
-from . import analyze, clean
+from . import analyze, clean, trends
 from .cache import Cache
 from .client import ArcGISClient
 from .config import Config
@@ -208,6 +208,10 @@ def main(argv=None) -> int:
     # --- write cleaned set ---
     _write_csv(records, args.out)
     print(f"\nWrote cleaned set ({len(records):,} rows) -> {args.out}")
+
+    # --- write sales-trend artifacts (regenerated on every run) ---
+    json_path, csv_path = _write_trends(records, args.out)
+    print(f"Wrote sales trends -> {json_path}, {csv_path}")
     cache.close()
     return 0
 
@@ -222,6 +226,27 @@ def _write_csv(records: list[dict], path: str) -> None:
         w = csv.DictWriter(f, fieldnames=cols)
         w.writeheader()
         w.writerows(records)
+
+
+def _write_trends(records: list[dict], out_path: str) -> tuple[str, str]:
+    """Build the trend report and write it next to the cleaned CSV as both a
+    nested JSON (full report) and a flat CSV (long format). Returns the paths."""
+    import os
+    out_dir = os.path.dirname(out_path) or "."
+    os.makedirs(out_dir, exist_ok=True)
+    report = trends.build_report(records)
+    json_path = os.path.join(out_dir, "sales_trends.json")
+    csv_path = os.path.join(out_dir, "sales_trends.csv")
+    with open(json_path, "w") as f:
+        json.dump(report, f, indent=2)
+    rows = trends.flatten(report)
+    cols = ["dimension", "group", "granularity", "period", "n",
+            "median_ppsf", "median_price"]
+    with open(csv_path, "w", newline="") as f:
+        w = csv.DictWriter(f, fieldnames=cols)
+        w.writeheader()
+        w.writerows(rows)
+    return json_path, csv_path
 
 
 if __name__ == "__main__":

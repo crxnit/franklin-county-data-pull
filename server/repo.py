@@ -8,10 +8,12 @@ for FastAPI's sync-endpoint threadpool.
 
 from __future__ import annotations
 
+import json
 import os
 import sqlite3
 import threading
 
+from franklin_housing import trends as trends_engine
 from franklin_housing.cache import COLUMNS
 from franklin_housing.clean import clean_records
 from franklin_housing.config import Config
@@ -24,6 +26,8 @@ class ReadRepo:
         self._pull_id = None
         self._records = None
         self._neighborhoods = None
+        self._trends = None
+        self._trends_pull_id = None
 
     # -- connection ---------------------------------------------------------
 
@@ -65,6 +69,44 @@ class ReadRepo:
     def etag(self) -> str:
         self.records()
         return f'"pull-{self._pull_id}"'
+
+    # -- trend report (materialized by the refresh job; computed as fallback) --
+
+    def trends(self) -> dict:
+        """The sales-trend report current as of the latest pull. Prefers the
+        materialized `trend_cache` row; if absent or stale (e.g. a fresh DB
+        before the first materialization), recomputes from cleaned records."""
+        conn = self._connect()
+        try:
+            pid = self._current_pull_id(conn)
+            if self._trends is not None and pid == self._trends_pull_id:
+                return self._trends
+            report = self._load_materialized(conn, pid)
+        finally:
+            conn.close()
+        # records() manages its own lock, so compute the fallback BEFORE taking
+        # ours (a non-reentrant Lock — nesting the two would deadlock).
+        if report is None:
+            report = trends_engine.build_report(self.records())
+        with self._lock:
+            self._trends = report
+            self._trends_pull_id = pid
+            return report
+
+    @staticmethod
+    def _load_materialized(conn, pid) -> dict | None:
+        try:
+            row = conn.execute(
+                "SELECT pull_id, report_json FROM trend_cache "
+                "ORDER BY pull_id DESC LIMIT 1").fetchone()
+        except sqlite3.Error:
+            return None
+        if not row or (pid is not None and row["pull_id"] != pid):
+            return None
+        try:
+            return json.loads(row["report_json"])
+        except (ValueError, TypeError):
+            return None
 
     def meta(self) -> dict:
         conn = self._connect()

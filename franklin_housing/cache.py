@@ -46,6 +46,11 @@ class Cache:
               where_clause TEXT NOT NULL,
               row_count INTEGER NOT NULL
             );
+            CREATE TABLE IF NOT EXISTS trend_cache (
+              pull_id INTEGER PRIMARY KEY,
+              computed_at TEXT NOT NULL,
+              report_json TEXT NOT NULL
+            );
             """
         )
         self.conn.commit()
@@ -78,8 +83,32 @@ class Cache:
         log.info("cached %d rows at %s", len(rows), ts)
         return len(rows)
 
+    def latest_pull_id(self) -> int | None:
+        row = self.conn.execute("SELECT MAX(id) AS m FROM pull_meta").fetchone()
+        return row["m"] if row else None
+
+    def save_trends(self, pull_id: int, report_json: str) -> None:
+        """Materialize a precomputed trend report keyed on the pull it reflects."""
+        ts = datetime.now(timezone.utc).isoformat(timespec="seconds")
+        self.conn.execute(
+            "INSERT OR REPLACE INTO trend_cache (pull_id, computed_at, report_json) "
+            "VALUES (?,?,?)",
+            (pull_id, ts, report_json),
+        )
+        self.conn.commit()
+
+    def load_trends(self) -> dict | None:
+        """Latest materialized trend report: {pull_id, computed_at, report_json}."""
+        row = self.conn.execute(
+            "SELECT pull_id, computed_at, report_json FROM trend_cache "
+            "ORDER BY pull_id DESC LIMIT 1"
+        ).fetchone()
+        return dict(row) if row else None
+
     def clear(self) -> None:
-        self.conn.executescript("DELETE FROM parcels; DELETE FROM pull_meta;")
+        self.conn.executescript(
+            "DELETE FROM parcels; DELETE FROM pull_meta; DELETE FROM trend_cache;"
+        )
         self.conn.commit()
 
     def load(self) -> list[dict]:

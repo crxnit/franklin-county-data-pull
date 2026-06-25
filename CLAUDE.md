@@ -167,3 +167,18 @@ Refreshed both **local** caches from the county API (current through sale date 2
   ssh -p 4321 john@webproxy.ai.jjocllc.com "sudo docker exec franklin-housing-app-1 python -c \"import sqlite3; print(sqlite3.connect('/data/webapp.sqlite').execute('SELECT pulled_at,row_count FROM pull_meta ORDER BY id DESC LIMIT 1').fetchone())\""
   ```
 - Verified live this session: `pulled_at = 2026-06-17T07:00:16+00:00`, 13,667 parcels — cron healthy. (Live 13,667 vs local 13,668 is normal independent-pull drift.)
+
+## Session log — 2026-06-25: sales-trend analysis, regenerated on every pull
+
+Added a full sales-trend feature across CLI + webapp, built on the **existing** `analyze.trend`/`analyze.window` (unchanged) via one shared zero-dep engine. Every data-pull path now (re)produces trends, so they're always current as of the latest pull. Tests green (22 pytest), ruff clean, frontend builds.
+
+- **`franklin_housing/trends.py`** (new, stdlib-only core) — `GRANULARITIES` (`sale_biweek`/`sale_month`/`sale_quarter`/`sale_year`), `price_tier`/`sqft_band` segment helpers, `DIMENSIONS` (overall, school, neighborhood, price_tier, sqft_band), `build_report(records, months_back=24, today=None)` → nested `{dimensions:{dim:{group:{granularity:[{period,n,median_ppsf,median_price}]}}}}`, and `flatten()` → long-format rows. Trends are comps-only (inherited from `analyze.trend`); windows once via `analyze.window`.
+- **Bi-weekly bucket**: added `sale_biweek` to `clean.clean_records` — a 14-day **block-start ISO date** anchored on Monday `1970-01-05` (`_biweek_start`), so labels sort chronologically and `analyze.trend(by="sale_biweek")` works with no changes to `analyze`.
+- **CLI** (`cli.py`): every run writes `data/sales_trends.json` (full) + `data/sales_trends.csv` (flat) next to `cleaned_sales.csv` via `_write_trends()`.
+- **Server materialization**: `cache.py` got a `trend_cache(pull_id PK, computed_at, report_json)` table + `latest_pull_id()`/`save_trends()`/`load_trends()` (and `clear()` wipes it). `server/jobs/refresh.py` materializes the report after `cache.save()`, keyed on the new pull id, wrapped in try/except (a trend failure never blocks the refresh — same discipline as the snapshot step).
+- **API**: `server/routers/trends.py` → `GET /api/trends/dimensions` (UI discovery) and `GET /api/trends?dimension=&group=&granularity=`. `ReadRepo.trends()` reads the materialized blob memoized on `pull_meta.id`, **falling back** to `build_report(self.records())` when the table is empty/stale. Registered in `main.py`.
+- **Frontend**: new `TrendAnalysisView.jsx` ("Sales trends" tab in `App.jsx`) with Breakdown/Group/Granularity dropdowns; `TrendChart` extended with optional `title` + `showPrice` (second right-axis median-price line) — backward compatible with the NeighborhoodView call. `api.trend`/`api.trendDimensions` added.
+
+Gotcha hit (fixed): **`ReadRepo.trends()` deadlocked** — it held the non-reentrant `self._lock` and then called `self.records()`, which re-acquires the same lock (single API test hung forever). Fix: compute the records() fallback *before* taking `_lock`; only the memo assignment is locked. Mirror this if adding more memoized repo methods.
+
+Verified end-to-end: CLI artifacts (25 monthly rows, all 5 dims, 901 comps); materialization writes `trend_cache` for pull_id 4 and `ReadRepo.trends()` serves it (54 biweekly blocks); `/api/trends` slices match `/api/neighborhoods/{nbhdcd}` on shared months; `npm run build` clean. Note: `python` isn't on PATH — use `.venv/bin/python`. Not yet committed/deployed.

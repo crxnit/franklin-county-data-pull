@@ -74,6 +74,16 @@ The Whigham case (7518 Whigham Ct → ~$523K) is the correctness oracle for both
 | `POST /api/comps` | live re-estimate for the comp tuner |
 | `GET /api/neighborhoods` | neighborhood list with medians |
 | `GET /api/neighborhoods/{nbhdcd}` | trend, histogram, scatter, recent sales |
+| `GET /api/trends/dimensions` | available breakdowns, group values, granularities (for the UI dropdowns) |
+| `GET /api/trends?dimension=&group=&granularity=` | one sales-trend slice (median $/sqft + price per period) |
+
+The trend report is materialized by the refresh job into a `trend_cache` table
+(keyed on `pull_meta.id`) and read by `ReadRepo.trends()`; if the table is
+empty/stale it recomputes from records, so the endpoint is always current as of
+the latest pull. Dimensions: `overall`, `school`, `neighborhood`, `price_tier`,
+`sqft_band`. Granularities: `sale_biweek`, `sale_month`, `sale_quarter`,
+`sale_year`. The shared engine is `franklin_housing/trends.py` (zero-dep), also
+used by the CLI to write `data/sales_trends.{json,csv}` on every run.
 
 ## Deploy
 

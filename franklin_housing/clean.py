@@ -13,15 +13,25 @@ If the optional enrichment step populated a true VALID, it takes precedence.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 
 from .config import SQFT_FIELD, Config
+
+# Anchor for bi-weekly buckets: a fixed Monday, so every 14-day block starts on
+# a Monday and block-start ISO dates sort chronologically.
+_BIWEEK_ANCHOR = date(1970, 1, 5)
 
 
 def _epoch_ms_to_date(ms):
     if ms in (None, ""):
         return None
     return datetime.fromtimestamp(int(ms) / 1000, tz=timezone.utc).date()
+
+
+def _biweek_start(d: date) -> str:
+    """ISO date of the 14-day block (anchored on a Monday) containing `d`."""
+    blocks = (d - _BIWEEK_ANCHOR).days // 14
+    return (_BIWEEK_ANCHOR + timedelta(days=blocks * 14)).isoformat()
 
 
 def _num(v):
@@ -86,6 +96,7 @@ def clean_records(rows: list[dict], cfg: Config) -> list[dict]:
             "sale_year": d.year if d else None,
             "sale_month": f"{d.year:04d}-{d.month:02d}" if d else None,
             "sale_quarter": f"{d.year:04d}-Q{(d.month - 1)//3 + 1}" if d else None,
+            "sale_biweek": _biweek_start(d) if d else None,
             "price": price,
             "sqft": int(sqft) if sqft else None,
             "price_per_sqft": round(ppsf, 2) if ppsf is not None else None,

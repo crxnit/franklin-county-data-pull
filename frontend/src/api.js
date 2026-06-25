@@ -44,4 +44,6 @@ export const api = {
   comps: (body) => req("/comps", { method: "POST", body: JSON.stringify(body) }),
   neighborhoods: () => req("/neighborhoods"),
   neighborhood: (nbhdcd) => req(`/neighborhoods/${encodeURIComponent(nbhdcd)}`),
+  trendDimensions: () => req("/trends/dimensions"),
+  trend: (params) => req(`/trends?${new URLSearchParams(params)}`),
 };
