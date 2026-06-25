@@ -4,6 +4,7 @@ from collections import defaultdict
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from franklin_housing import analyze
+from franklin_housing.neighborhoods import name_for
 
 from ..deps import get_repo
 from ..repo import ReadRepo
@@ -26,6 +27,7 @@ def list_neighborhoods(months_back: int = Query(default=24, ge=1, le=120),
             groups[r["nbhdcd"]].append(r)
     out = [{
         "nbhdcd": nb,
+        "name": name_for(nb),
         "n_sales": len(rows),
         "median_ppsf": _med([r["price_per_sqft"] for r in rows]),
         "median_price": _med([r["price"] for r in rows]),
@@ -45,6 +47,7 @@ def neighborhood(nbhdcd: str, months_back: int = Query(default=24, ge=1, le=120)
     comps = [r for r in rows if r["is_comp"]]
     return {
         "nbhdcd": nbhdcd,
+        "name": name_for(nbhdcd),
         "summary": analyze.summary(rows),
         "trend": analyze.trend(rows, by="sale_month"),
         "histogram": analyze.histogram(rows),

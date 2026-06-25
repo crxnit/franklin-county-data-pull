@@ -16,6 +16,7 @@ from __future__ import annotations
 from datetime import date, datetime, timedelta, timezone
 
 from .config import SQFT_FIELD, Config
+from .neighborhoods import name_for
 
 # Anchor for bi-weekly buckets: a fixed Monday, so every 14-day block starts on
 # a Monday and block-start ISO dates sort chronologically.
@@ -91,6 +92,7 @@ def clean_records(rows: list[dict], cfg: Config) -> list[dict]:
             "zip": r.get("ZIPCD"),
             "school": r.get("SCHLDSCRP"),
             "nbhdcd": r.get("NBHDCD"),
+            "nbhd_name": name_for(r.get("NBHDCD")),
             "class": r.get("CLASSCD"),
             "sale_date": d.isoformat() if d else None,
             "sale_year": d.year if d else None,

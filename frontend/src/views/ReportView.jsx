@@ -48,7 +48,7 @@ export default function ReportView() {
                 <span className="k">Sqft (above grade)</span><span>{report.subject.sqft?.toLocaleString() || "—"}</span>
                 <span className="k">Beds / baths</span><span>{report.subject.beds}/{report.subject.baths}</span>
                 <span className="k">Year built</span><span>{report.subject.year_built || "—"}</span>
-                <span className="k">Neighborhood</span><span>{report.subject.nbhdcd}</span>
+                <span className="k">Neighborhood</span><span>{nbhd?.name ? `${nbhd.name} (${report.subject.nbhdcd})` : report.subject.nbhdcd}</span>
                 <span className="k">Assessed</span><span>{usd(report.subject.assessed)}</span>
               </div>
               {report.best_anchor_sale && (

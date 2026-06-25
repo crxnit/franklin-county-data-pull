@@ -1,0 +1,65 @@
+nbhdcd,name,parcels,purity_pct,basis,notes
+00111000,Dublinshire / Wyndham Village,1449,22,mixed,"also Westbury, Hawks Nest"
+02614000,Riverside Green South,930,67,cluster,"with Riverside Hills, Misty Meadows West"
+00114000,Hemingway Village / Dublinshire,907,28,mixed,also Earlington Village
+02800000,Olde Sawmill,861,64,cluster,"with Sawmill Forest, Summit Forest"
+00101000,Muirfield Village,831,75,clean,"with Muirfield Greene, The Moors at Muirfield"
+00801000,Ballymead / Kilbannon,557,45,mixed,also Kildaire
+02613000,Riverside Green,475,85,clean,
+00136000,Brandon,447,91,clean,
+00134000,Heather Glen,436,53,cluster,"with Sandy Corners, Heather Glen North"
+02802000,Summit View Woods,393,100,clean,
+00104000,Waterford Village,362,67,cluster,
+00138000,Coventry Woods / Woods of Indian Run,333,47,mixed,also Killilea
+02612000,Misty Meadows,295,75,cluster,with Crown Ridge
+02601000,McKitrick Estates,285,99,clean,
+00118000,Shannon Glen / Belvedere,270,60,mixed,
+00119000,Donegal Cliffs,250,100,clean,
+00135000,Bristol Commons,250,72,cluster,with The Woods of Dublin
+00133000,Indian Run Meadows,242,100,clean,
+00108000,Wedgewood,231,36,mixed,"Wedgewood Hills/Glen, Campden Lakes"
+00106000,Trinity Park / Brighton Park,220,40,mixed,also Balgriffin
+00122000,Llewellyn Farms,220,83,clean,
+02807000,Summerwood,209,100,clean,
+00112000,Amberleigh,201,60,cluster,
+00102000,Hayden Farms,191,21,mixed,"Dublin Estates, Lancashire; some unmapped"
+02818000,Foxboro Village,171,100,clean,
+00130000,Muirfield Drive,164,100,clean,Muirfield Dr dedication plat
+00137000,Sheffield Place / Wellington,158,44,mixed,
+00120000,Wyandotte Woods,154,90,clean,
+02813000,Brookside Colony,148,99,clean,
+00117000,Shannon Park,139,100,clean,
+02611000,Wyandotte Trail,138,100,clean,
+00116000,River Forest,120,100,clean,
+00140000,Shannon Park,106,100,clean,north sections
+02828000,Brookside Woods,106,100,clean,
+00110000,Riviera,105,100,clean,
+00120001,Wyandotte Woods,103,100,clean,
+02816000,Whispering Pines,87,99,clean,
+02610000,Riverside Green South,86,100,clean,
+00126000,Hanna Hills / Glenbriar,81,28,mixed,also Grandee Cliffs Estates
+02814000,Oakridge Meadows,74,100,clean,
+00131000,Courtyards on Riverside,72,100,clean,
+02815000,Smoky Row Manor South,70,100,clean,
+00109000,Bryson Cove,69,100,clean,
+02809000,Skyline,61,100,clean,
+00901000,Hayden Falls,61,64,cluster,
+02617000,Riverside Glen,57,100,clean,
+00139000,Riverside Woods,52,100,clean,
+00132000,Ravello,50,100,clean,
+02616000,Country Gardens,36,97,clean,
+00123000,Sunny Dale / Colony Estates,36,53,mixed,
+02101000,Shoemaker / Henderson Heights,35,54,mixed,Old Dublin
+00121000,O'Shaughnessy Hills,35,100,clean,
+02119000,Brynwood,22,91,clean,resub of Brynwood Sub
+00128000,Dublin Woods,19,68,cluster,
+00103000,Maple Glen,18,78,cluster,
+00125000,Deer Run,18,100,clean,
+02806000,Cherrington Place,16,100,clean,
+00100000,Dublin Glen / Leppert,16,50,mixed,Old Dublin
+00124000,River Highlands,16,100,clean,
+00113000,Drexel Hills Terrace,14,64,cluster,
+02618000,Riverside Hills,4,100,clean,
+T2601053,Wolcott Condo,2,100,unmapped,tiny/condo edge code
+X0103000,,1,100,unmapped,junk code (1 parcel)
+00800000,,1,100,unmapped,junk code (1 parcel)

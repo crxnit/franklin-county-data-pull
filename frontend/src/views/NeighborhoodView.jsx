@@ -31,7 +31,7 @@ export default function NeighborhoodView() {
         <select id="nbhd-select" value={sel} onChange={(e) => setSel(e.target.value)}>
           {list.map((n) => (
             <option key={n.nbhdcd} value={n.nbhdcd}>
-              {n.nbhdcd} — {n.n_sales} sales · median {ppsf(n.median_ppsf)}/sqft · {usd(n.median_price)}
+              {n.name ? `${n.name} (${n.nbhdcd})` : n.nbhdcd} — {n.n_sales} sales · median {ppsf(n.median_ppsf)}/sqft · {usd(n.median_price)}
             </option>
           ))}
         </select>

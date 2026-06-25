@@ -30,7 +30,10 @@ export default function TrendAnalysisView() {
     api.trendDimensions().then(setDims).catch((e) => setErr(e.message));
   }, []);
 
-  const groups = dims?.dimensions.find((d) => d.key === dimension)?.groups || [];
+  const dimMeta = dims?.dimensions.find((d) => d.key === dimension);
+  const groups = dimMeta?.groups || [];
+  const groupLabels = dimMeta?.labels || {};        // {groupValue: displayName} (neighborhood only)
+  const labelFor = (g) => groupLabels[g] || g;
 
   // When the dimension changes, default the group to the first available.
   useEffect(() => {
@@ -49,7 +52,7 @@ export default function TrendAnalysisView() {
     api.trend(params).then(setData).catch((e) => setErr(e.message));
   }, [dims, dimension, group, granularity]);
 
-  const title = `${DIM_LABELS[dimension]}${dimension !== "overall" && group ? ` · ${group}` : ""}`
+  const title = `${DIM_LABELS[dimension]}${dimension !== "overall" && group ? ` · ${labelFor(group)}` : ""}`
     + ` — median $/sqft (${GRAN_LABELS[granularity]})`;
 
   return (
@@ -68,7 +71,7 @@ export default function TrendAnalysisView() {
             <div>
               <label htmlFor="trend-group">Group</label>
               <select id="trend-group" value={group} onChange={(e) => setGroup(e.target.value)}>
-                {groups.map((g) => <option key={g} value={g}>{g}</option>)}
+                {groups.map((g) => <option key={g} value={g}>{labelFor(g)}</option>)}
               </select>
             </div>
           )}
