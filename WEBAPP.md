@@ -72,9 +72,9 @@ The Whigham case (7518 Whigham Ct → ~$523K) is the correctness oracle for both
 | `GET /api/address/search?q=` | address autocomplete |
 | `GET /api/report?address=` | pricing report (estimate + comps + charts data) |
 | `POST /api/comps` | live re-estimate for the comp tuner |
-| `GET /api/neighborhoods` | neighborhood list with medians |
-| `GET /api/neighborhoods/{nbhdcd}` | trend, histogram, scatter, recent sales |
-| `GET /api/trends/dimensions` | available breakdowns, group values, granularities (for the UI dropdowns) |
+| `GET /api/neighborhoods` | neighborhood list with medians (+ `name` per code) |
+| `GET /api/neighborhoods/{nbhdcd}` | trend, histogram, scatter, recent sales (+ `name`) |
+| `GET /api/trends/dimensions` | available breakdowns, group values, granularities (for the UI dropdowns); the `neighborhood` dimension also carries a `labels` map of `code → "Name (code)"` |
 | `GET /api/trends?dimension=&group=&granularity=` | one sales-trend slice (median $/sqft + price per period) |
 
 The trend report is materialized by the refresh job into a `trend_cache` table
