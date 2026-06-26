@@ -15,9 +15,11 @@ Dockerfile copies `franklin_housing/`).
 from __future__ import annotations
 
 import csv
+import logging
 from pathlib import Path
 
 _CSV = Path(__file__).with_name("nbhd_names.csv")
+_log = logging.getLogger(__name__)
 
 
 def _load() -> dict[str, str]:
@@ -29,9 +31,10 @@ def _load() -> dict[str, str]:
                 name = (row.get("name") or "").strip()
                 if code and name:
                     names[code] = name
-    except OSError:
-        # Missing/unreadable table is non-fatal — callers fall back to the code.
-        pass
+    except (OSError, csv.Error) as e:
+        # A missing or malformed table (this file is hand-editable) must not
+        # crash import — degrade gracefully: callers fall back to the bare code.
+        _log.warning("neighborhood name table unreadable (%s); using codes", e)
     return names
 
 
