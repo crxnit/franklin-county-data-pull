@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { api } from "../api.js";
 import CompTable from "../components/CompTable.jsx";
 import { PpsfHistogram, PriceVsSqftScatter, TrendChart } from "../components/charts.jsx";
-import { usd, ppsf } from "../format.js";
+import { usd, ppsf, nbhdLabel } from "../format.js";
 
 export default function NeighborhoodView() {
   const [list, setList] = useState([]);
@@ -31,7 +31,7 @@ export default function NeighborhoodView() {
         <select id="nbhd-select" value={sel} onChange={(e) => setSel(e.target.value)}>
           {list.map((n) => (
             <option key={n.nbhdcd} value={n.nbhdcd}>
-              {n.name ? `${n.name} (${n.nbhdcd})` : n.nbhdcd} — {n.n_sales} sales · median {ppsf(n.median_ppsf)}/sqft · {usd(n.median_price)}
+              {nbhdLabel(n.name, n.nbhdcd)} — {n.n_sales} sales · median {ppsf(n.median_ppsf)}/sqft · {usd(n.median_price)}
             </option>
           ))}
         </select>

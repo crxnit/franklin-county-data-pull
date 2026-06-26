@@ -8,7 +8,7 @@ sale_month, sale_quarter, sale_year); the query params pick the slice.
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
-from franklin_housing.neighborhoods import name_for
+from franklin_housing.neighborhoods import label_for
 from franklin_housing.trends import DIMENSIONS, GRANULARITIES
 
 from ..deps import get_repo
@@ -27,10 +27,11 @@ def list_dimensions(repo: ReadRepo = Depends(get_repo)):
     def _dim(dim):
         groups = sorted(dims.get(dim, {}).keys())
         entry = {"key": dim, "groups": groups}
-        # The neighborhood dimension groups by NBHDCD code; ship display names
-        # so the UI can label dropdowns without re-deriving the mapping.
+        # The neighborhood dimension groups by NBHDCD code; ship display labels
+        # ("Name (code)") so the UI can label dropdowns without re-deriving the
+        # mapping. The code keeps duplicate-named neighborhoods distinguishable.
         if dim == "neighborhood":
-            entry["labels"] = {g: (name_for(g) or g) for g in groups}
+            entry["labels"] = {g: label_for(g) for g in groups}
         return entry
 
     return {
