@@ -200,3 +200,10 @@ Verified: 22 pytest pass, ruff clean, `npm run build` clean; end-to-end against 
 - `harden` (security-review follow-up) — `neighborhoods._load()` ran at import catching only `OSError`; a malformed CSV (`csv.Error`) would propagate and crash `franklin_housing` import (server + CLI down). Since `nbhd_names.csv` is hand-editable, broadened the catch to `(OSError, csv.Error)` + a `logging.warning`, degrading to bare codes instead of failing startup. Tested: malformed CSV → warns, returns {}, no raise.
 
 Open: none specific to this feature. Future tweaks to a name = edit `franklin_housing/nbhd_names.csv` and push (no data re-pull). The 25 `cluster`/`mixed`-basis codes (purity <80% in the CSV) are the rows most worth a human eyeball if a name ever looks off.
+
+## Session log — 2026-06-27: local data refresh
+
+Refreshed both **local** caches from the county API (current through sale date 2026-06-26). No code changes; working tree clean (refresh only writes gitignored `data/`). Standard workflow: `.venv/bin/python -m server.jobs.refresh` + `... -m franklin_housing --refresh`, then `... -m scripts.db_diff diff`.
+- webapp.sqlite: 13,668 → 13,672 parcels (+4). 57 parcels with a new/changed sale (e.g. 2472 Dunstan Dr $449,900, 4779 Belfield Ct $799,900, 6482 Ringsend Ct $769,500; several `$0` non-market transfers), 266 SITEADDRESS fixes, 2 valuation tweaks. Trends materialized for pull #5.
+- CLI franklin_housing.sqlite: 901 → 923 comps (+22), 24-mo window; 2 newly-priced comps (4779 Belfield Ct $799,900, 2218 Otter Ln $446,000). `$/sqft` still clusters $202–300; June 2026 median ~$268/sqft / $569K.
+- Reminder: this is **local only**; the live site rebuilds independently via the 07:00 UTC refresh cron.
