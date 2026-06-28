@@ -16,14 +16,14 @@ export default function CompTable({ comps, title = "Comparable sales" }) {
         <tbody>
           {comps.map((c) => (
             <tr key={c.parcelid}>
-              <td>{c.address}</td>
-              <td>{c.sale_date}</td>
-              <td>{usd(c.price)}</td>
-              <td>{num(c.sqft)}</td>
-              <td>{ppsf(c.price_per_sqft)}</td>
-              <td>{c.beds}/{c.baths}</td>
-              <td>{c.year_built}</td>
-              <td>{c.sale_to_assessment ?? "—"}</td>
+              <td data-label="Address">{c.address}</td>
+              <td data-label="Sold">{c.sale_date}</td>
+              <td data-label="Price">{usd(c.price)}</td>
+              <td data-label="Sqft">{num(c.sqft)}</td>
+              <td data-label="$/sqft">{ppsf(c.price_per_sqft)}</td>
+              <td data-label="Bd/Ba">{c.beds}/{c.baths}</td>
+              <td data-label="Built">{c.year_built}</td>
+              <td data-label="Sale:Assess">{c.sale_to_assessment ?? "—"}</td>
             </tr>
           ))}
         </tbody>

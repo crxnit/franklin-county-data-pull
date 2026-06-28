@@ -39,6 +39,8 @@ input, select {
 }
 label { display: block; font-size: 12px; color: var(--muted); margin: 0 0 4px; }
 button.primary { background: var(--accent); color: white; border: none; border-radius: 8px; padding: 10px 16px; cursor: pointer; font-size: 14px; }
+/* Drop the default gray flash on tap (touch devices only; desktop ignores it). */
+button, a, li, input, select { -webkit-tap-highlight-color: transparent; }
 
 .estimate .big { font-size: 34px; font-weight: 700; letter-spacing: -.5px; }
 .estimate .range { color: var(--muted); margin-top: 2px; }
@@ -62,3 +64,40 @@ tr:hover td { background: var(--panel-2); }
 .slider-row input[type=range] { flex: 1; }
 .chart-title { font-size: 13px; color: var(--muted); margin: 0 0 8px; }
 .gate { max-width: 360px; margin: 80px auto; text-align: center; }
+
+/* ---- Mobile (≤640px). Desktop ≥641px is unaffected — these rules only widen
+   defaults for phones: stack the header, 16px inputs (no iOS focus-zoom), and
+   reflow data tables into label/value cards. ---- */
+@media (max-width: 640px) {
+  /* P0: header no longer forces horizontal scroll — title + meta wrap, and the
+     tab nav drops to its own full-width line instead of overflowing right. */
+  header.top { flex-wrap: wrap; gap: 2px 16px; }
+  nav { margin-left: 0; width: 100%; flex-wrap: wrap; margin-top: 10px; }
+
+  /* P0: ≥16px stops iOS Safari zooming the page when a field is focused.
+     P1: min-height guarantees the 44px WCAG 2.5.5 / Apple HIG touch target
+     regardless of the control's line-height. */
+  input, select { font-size: 16px; padding: 9px 12px; min-height: 44px; }
+
+  /* P1: same 44px floor for tappable buttons + list options (desktop keeps its
+     compact sizing above the breakpoint). */
+  nav button { padding: 8px 14px; min-height: 44px; }
+  button.primary { padding: 8px 18px; min-height: 44px; }
+  .autocomplete li { padding: 9px 12px; min-height: 44px; }
+
+  /* P0: wide tables reflow to one card per row (no horizontal page scroll).
+     thead is dropped; each cell shows its column via data-label. */
+  table, tbody, tr, td { display: block; width: 100%; }
+  thead { display: none; }
+  tr { border: 1px solid var(--line); border-radius: 10px; padding: 6px 12px; margin-bottom: 10px; }
+  tr:hover td { background: transparent; }
+  td {
+    display: flex; justify-content: space-between; gap: 16px;
+    text-align: right; white-space: normal; border: none; padding: 6px 0;
+  }
+  td:not(:last-child) { border-bottom: 1px solid var(--line); }
+  td::before { content: attr(data-label); color: var(--muted); font-weight: 600; text-align: left; }
+  /* First cell (address / method) becomes the card heading. */
+  td:first-child { font-weight: 650; font-size: 15px; }
+  td:first-child::before { display: none; }
+}

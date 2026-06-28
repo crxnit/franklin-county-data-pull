@@ -24,10 +24,10 @@ export default function EstimateCard({ estimate, subject }) {
         <tbody>
           {estimate.views.map((v) => (
             <tr key={v.label}>
-              <td>{v.label.replace(/_/g, " ")}</td>
-              <td>{v.n}</td>
-              <td>{ppsf(v.median_ppsf)}</td>
-              <td>{usd(v.estimate)}</td>
+              <td data-label="Method">{v.label.replace(/_/g, " ")}</td>
+              <td data-label="n">{v.n}</td>
+              <td data-label="median $/sqft">{ppsf(v.median_ppsf)}</td>
+              <td data-label="estimate">{usd(v.estimate)}</td>
             </tr>
           ))}
         </tbody>

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { Suspense, useEffect, useState } from "react";
 import { api, setToken, ApiError } from "./api.js";
 import ReportView from "./views/ReportView.jsx";
 import CompTunerView from "./views/CompTunerView.jsx";
@@ -61,7 +61,9 @@ export default function App() {
           ))}
         </nav>
       </header>
-      <ActiveView />
+      <Suspense fallback={<div className="panel muted">Loading…</div>}>
+        <ActiveView />
+      </Suspense>
     </div>
   );
 }
