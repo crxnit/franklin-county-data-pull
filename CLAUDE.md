@@ -207,3 +207,21 @@ Refreshed both **local** caches from the county API (current through sale date 2
 - webapp.sqlite: 13,668 → 13,672 parcels (+4). 57 parcels with a new/changed sale (e.g. 2472 Dunstan Dr $449,900, 4779 Belfield Ct $799,900, 6482 Ringsend Ct $769,500; several `$0` non-market transfers), 266 SITEADDRESS fixes, 2 valuation tweaks. Trends materialized for pull #5.
 - CLI franklin_housing.sqlite: 901 → 923 comps (+22), 24-mo window; 2 newly-priced comps (4779 Belfield Ct $799,900, 2218 Otter Ln $446,000). `$/sqft` still clusters $202–300; June 2026 median ~$268/sqft / $569K.
 - Reminder: this is **local only**; the live site rebuilds independently via the 07:00 UTC refresh cron.
+
+## Session log — 2026-06-28: mobile usability retrofit (shipped live)
+
+Ran `/mobile-usability-audit` over `frontend/` then implemented the plan across all phases. **Shipped live** (commit `4d14e52`, CI+Deploy green, live bundle hash confirmed at 7518.jjocapps.com). Mobile changes apply on container swap — no data re-pull. Desktop (≥641px) is byte-identical: **every** layout rule lives in one `@media (max-width: 640px)` block in `frontend/src/styles.css`.
+
+- **Audit finding:** plain React 18 + Vite + vanilla CSS (no Tailwind). Viewport meta was already correct; the app shipped **zero media queries** (desktop-first). Three real P0s: header overflow → page horizontal scroll, 8-col comp table overflow, and 14px inputs (iOS focus-zoom).
+- **P0 fixes:** `header.top` + `nav` now `flex-wrap` (tabs drop to their own line); inputs/selects → 16px on mobile; comp/estimate `<table>`s reflow to **one card per row** via `data-label` attrs (`thead{display:none}`, `td` flex with `::before` labels) — full tables return at desktop. No horizontal scroll on any view at 375/390/412px.
+- **P1/P2:** `min-height:44px` touch targets (nav buttons, `.primary`, inputs/selects, autocomplete `li`) mobile-only; `-webkit-tap-highlight-color:transparent` (global); `prefers-reduced-motion` honored on histogram/scatter via a `usePrefersReducedMotion()` matchMedia hook (Recharts animates in JS, so CSS can't suppress it; `TrendChart` already never animated).
+- **Recharts code-split:** `charts.jsx` is now a thin **lazy facade** (`React.lazy`) over new `components/chartsImpl.jsx`; one `<Suspense>` in `App.jsx`. **No view imports changed.** Main JS **557kB → 160kB** (gzip 159→51); the 398kB charts chunk loads on first chart render, off the landing critical path.
+
+Verification (this session's `/verify`): drove the **real app** with Playwright (installed locally, then reverted from `package.json`) against a local `uvicorn` backend serving `webapp.sqlite` + built `dist`. Confirmed empirically at 375/390/412/1024px: no horizontal scroll (16/16 checks), `td` flex↔table-cell flip, input 16px↔14px, nav wrap, 44px targets exact, tap-highlight transparent, and 3 chart SVGs render with 0 page errors under both `reducedMotion: reduce` and `no-preference`.
+
+Gotchas / env notes:
+- Backend runs **open (no auth)** when `FH_AUTH_SECRET` is unset (`env -u FH_AUTH_SECRET`) — easiest way to drive the SPA without the password gate. Set `FH_AUTH_SECRET=...` to exercise the gate (login with that value as the Bearer token).
+- **`.venv` lacked `pytest`** (only had CLI/zero-dep + the runtime deps I added: `fastapi uvicorn slowapi pydantic-settings`). The pre-push hook (`.venv/bin/python -m pytest`) blocked the first push with `No module named pytest`. Fix: `pip install pytest httpx` into `.venv`, then push (22 tests pass). All now installed locally (gitignored).
+- ESM driver scripts must live in `frontend/` (next to `node_modules`) — Node resolves imports from the script's dir, not cwd.
+
+Open: none for this feature. The full audit plan (P0/P1/P2 + perf) is complete. Future copy/name tweaks unaffected.
