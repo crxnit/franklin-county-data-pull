@@ -225,3 +225,10 @@ Gotchas / env notes:
 - ESM driver scripts must live in `frontend/` (next to `node_modules`) — Node resolves imports from the script's dir, not cwd.
 
 Open: none for this feature. The full audit plan (P0/P1/P2 + perf) is complete. Future copy/name tweaks unaffected.
+
+## Session log — 2026-07-07: local data refresh
+
+Refreshed both **local** caches from the county API (current through sale date 2026-07-06). No code changes; working tree clean (refresh only writes gitignored `data/`). Standard workflow: `.venv/bin/python -m server.jobs.refresh` + `... -m franklin_housing --refresh`, then `... -m scripts.db_diff diff`.
+- webapp.sqlite: 13,672 → 13,675 parcels (+3; all new on Wolf Ridge Dr). 46 parcels with a new/changed sale (e.g. 3288 Wolf Ridge Dr $1.05M, 7756 Fulmar Dr $625K, 7155 Wellington Ct $670K, 5903 Newbridge Dr $681K, 7631 W Kestrel Wy $950K; several `$0` non-market transfers), 152 SITEADDRESS fixes, 2 valuation tweaks. Trends materialized for pull #6.
+- CLI franklin_housing.sqlite: 923 → 902 comps in the rolling 24-mo window (16 in / 37 out as older sales aged out). `$/sqft` still clusters $197–290; June 2026 median ~$268/sqft / $569K, early July ~$247/sqft.
+- Reminder: this is **local only**; the live site rebuilds independently via the 07:00 UTC refresh cron.
