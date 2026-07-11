@@ -232,3 +232,10 @@ Refreshed both **local** caches from the county API (current through sale date 2
 - webapp.sqlite: 13,672 → 13,675 parcels (+3; all new on Wolf Ridge Dr). 46 parcels with a new/changed sale (e.g. 3288 Wolf Ridge Dr $1.05M, 7756 Fulmar Dr $625K, 7155 Wellington Ct $670K, 5903 Newbridge Dr $681K, 7631 W Kestrel Wy $950K; several `$0` non-market transfers), 152 SITEADDRESS fixes, 2 valuation tweaks. Trends materialized for pull #6.
 - CLI franklin_housing.sqlite: 923 → 902 comps in the rolling 24-mo window (16 in / 37 out as older sales aged out). `$/sqft` still clusters $197–290; June 2026 median ~$268/sqft / $569K, early July ~$247/sqft.
 - Reminder: this is **local only**; the live site rebuilds independently via the 07:00 UTC refresh cron.
+
+## Session log — 2026-07-11: local data refresh
+
+Refreshed both **local** caches from the county API (current through sale date 2026-07-10). No code changes; working tree clean (refresh only writes gitignored `data/`). Standard workflow: `.venv/bin/python -m server.jobs.refresh` + `... -m franklin_housing --refresh`, then `... -m scripts.db_diff diff`.
+- webapp.sqlite: 13,675 → 13,678 parcels (+3; new on Deer Bluff Pl, Wolf Ridge Dr, Clover Ln). 33 parcels with a new/changed sale (e.g. 9083 N Moors Pl $840K, 8212 Shannon Glen Blvd $800K, 7616 Worsley Pl $668K, 5410 Haverhill Dr $605K, 3109 Brightington Dr $429K; several `$0` non-market transfers), 2 valuation tweaks (TOTVALUEBASE/BLDVALUEBASE). Trends materialized for pull #7.
+- CLI franklin_housing.sqlite: 902 → 909 comps in the rolling 24-mo window (+7, 0 removed). `$/sqft` still clusters $197–290; June 2026 median ~$268/sqft / $569K, early July ~$254/sqft / $602K.
+- Reminder: this is **local only**; the live site rebuilds independently via the 07:00 UTC refresh cron.
