@@ -59,6 +59,21 @@ python -m scripts.db_diff diff
 The baseline is overwritten on every refresh, so `diff` always reflects the
 most recent pull. A snapshot failure is logged but never blocks the refresh.
 
+### Monthly bulk sales ingest (host cron)
+
+`/etc/cron.d/franklin-bulk-sales` (17th 08:00 UTC — after the county publishes
+its ~15th-evening Appraisal extract, clear of the 07:00 daily refresh):
+
+```
+0 8 17 * * root cd /srv/portal-apps/franklin-housing && /usr/bin/docker compose exec -T app python -m franklin_housing.bulk_sales /data/webapp.sqlite >> /var/log/franklin-bulk-sales.log 2>&1
+```
+
+Idempotent atomic rebuild of the `sales` table (~64k conveyance rows + county
+VALID coding). Annotation reaches API responses when records re-memoize (the
+next daily refresh at the latest). Note: `/data/sales_history.sqlite` (the
+append-only observation ledger the refresh job feeds) is NOT derivable —
+unlike `webapp.sqlite` it would merit a backup.
+
 ## CI/CD
 
 Push-to-deploy is **wired** (JJOC pipeline): `.github/workflows/{ci,deploy}.yml`

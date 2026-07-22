@@ -68,9 +68,9 @@ The Whigham case (7518 Whigham Ct → ~$523K) is the correctness oracle for both
 | Endpoint | Purpose |
 |---|---|
 | `GET /api/health` | liveness (open) |
-| `GET /api/meta` | data freshness + counts |
+| `GET /api/meta` | data freshness + counts (incl. `bulk_sales` ingest info) |
 | `GET /api/address/search?q=` | address autocomplete |
-| `GET /api/report?address=` | pricing report (estimate + comps + charts data) |
+| `GET /api/report?address=` | pricing report (estimate + comps + charts data + `sale_history`) |
 | `POST /api/comps` | live re-estimate for the comp tuner |
 | `GET /api/neighborhoods` | neighborhood list with medians (+ `name` per code) |
 | `GET /api/neighborhoods/{nbhdcd}` | trend, histogram, scatter, recent sales (+ `name`) |
@@ -84,6 +84,23 @@ the latest pull. Dimensions: `overall`, `school`, `neighborhood`, `price_tier`,
 `sqft_band`. Granularities: `sale_biweek`, `sale_month`, `sale_quarter`,
 `sale_year`. The shared engine is `franklin_housing/trends.py` (zero-dep), also
 used by the CLI to write `data/sales_trends.{json,csv}` on every run.
+
+## Sale history (1:many) + county VALID
+
+`franklin_housing/bulk_sales.py` ingests the Auditor's monthly bulk Appraisal
+extract into a `sales` table alongside `parcels` (join on `PARCELID`) — every
+conveyance back to ~1980, incl. the county's real `VALID` arms-length coding
+(null in every GIS feed). `annotate_valid()` maps that coding onto each
+parcel's latest GIS sale at read time (`ReadRepo.records()`, the refresh job's
+trend materialization, and the CLI), superseding the ratio proxy via
+`clean.py`'s existing VALID precedence; `valid_basis` reports
+`county_coded+ratio_proxy`. `/api/report` carries the full `sale_history`;
+the SPA renders it on the address report. Ingest is an idempotent atomic
+rebuild: `python -m franklin_housing.bulk_sales [db_path]` (monthly VPS cron:
+`/etc/cron.d/franklin-bulk-sales`, 17th 08:00 UTC). Complementary
+`franklin_housing/history.py` keeps an append-only observation ledger
+(`data/sales_history.sqlite`, fed by both refresh paths) covering the gap
+between monthly extracts — it is the one NON-derivable data file.
 
 ## Deploy
 
