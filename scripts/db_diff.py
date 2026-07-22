@@ -46,7 +46,13 @@ def _table(con: sqlite3.Connection, declared: str | None) -> str:
         "SELECT name FROM sqlite_master WHERE type='table' "
         "AND name NOT LIKE 'sqlite_%' AND name!='pull_meta'"
     ).fetchall()
-    return rows[0][0]
+    names = [r[0] for r in rows]
+    # Prefer the canonical parcels table explicitly: the caches now also carry
+    # trend_cache / sales / sales_meta, and "first table wins" only worked by
+    # accident of creation order (and would KeyError on PARCELID if it broke).
+    if "parcels" in names:
+        return "parcels"
+    return names[0]
 
 
 def _fmt_date(ms) -> str | None:

@@ -27,6 +27,18 @@ def test_report_whigham_oracle(client):
     assert r["comps"], "expected comps"
 
 
+def test_report_carries_sale_history(client):
+    """1:many conveyance history from the bulk extract rides on the report.
+    (Empty list is legal pre-ingest; once ingested, rows are date-ordered.)"""
+    r = client.get("/api/report", params={"address": "7518 whigham ct"}).json()
+    assert isinstance(r["sale_history"], list)
+    dates = [s["sale_date"] for s in r["sale_history"] if s["sale_date"]]
+    assert dates == sorted(dates)
+    for s in r["sale_history"]:
+        assert {"sale_date", "price", "valid_code", "instrument",
+                "flags"} <= set(s)
+
+
 def test_comps_matches_report(client):
     """POST /comps with the subject's attributes yields the same anchor as the
     report (both share analyze.price_estimate)."""

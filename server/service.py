@@ -57,7 +57,12 @@ def build_report(repo: ReadRepo, *, parcelid=None, address=None, subject_sqft=No
     nbhd_comps = [r for r in windowed if r["nbhdcd"] == s_nbhd] if s_nbhd else windowed
     summary = analyze.summary(nbhd_comps)
 
+    # Full per-parcel conveyance history from the monthly bulk extract
+    # (empty list until the first bulk_sales.ingest).
+    history = repo.sales_for(subj_rec["parcelid"]) if subj_rec else []
+
     meta = repo.meta()
+    coded = any(r.get("valid_raw") not in (None, "") for r in records)
     return {
         "subject": {
             "parcelid": subj_rec.get("parcelid") if subj_rec else None,
@@ -70,6 +75,7 @@ def build_report(repo: ReadRepo, *, parcelid=None, address=None, subject_sqft=No
         "comps": comp_rows,
         "neighborhood_summary": summary,
         "best_anchor_sale": comp_rows[0] if comp_rows else None,
+        "sale_history": history,
         "data_as_of": meta["last_pull"]["pulled_at"] if meta["last_pull"] else None,
-        "valid_basis": "ratio_proxy",
+        "valid_basis": "county_coded+ratio_proxy" if coded else "ratio_proxy",
     }

@@ -15,10 +15,12 @@ import logging
 import sys
 
 from franklin_housing import trends
+from franklin_housing.bulk_sales import annotate_valid
 from franklin_housing.cache import Cache
 from franklin_housing.clean import clean_records
 from franklin_housing.client import ArcGISClient
 from franklin_housing.config import Config
+from franklin_housing.history import record_sales
 from franklin_housing.snapshot import snapshot_db
 
 from ..settings import get_settings
@@ -54,12 +56,25 @@ def refresh(db_path: str | None = None) -> int:
     try:
         cache.save(rows, where)        # INSERT OR REPLACE; no clear()
         log.info("refresh: upserted %d rows into %s", len(rows), cfg.db_path)
+        # Append any newly-observed sales to the permanent history ledger
+        # (the GIS layer overwrites a parcel's sale on resale; this is the
+        # only record we keep of the prior one). Never blocks the refresh.
+        try:
+            n_new = record_sales(cfg.db_path, rows, source="webapp")
+            log.info("refresh: %d new sale(s) appended to history", n_new)
+        except Exception:
+            log.warning("refresh: sales-history append failed (continuing)",
+                        exc_info=True)
         # Materialize the sales-trend report for this pull. A trend-compute
         # failure must never block the data refresh — log and move on (same
         # discipline as the baseline snapshot above).
         try:
             pull_id = cache.latest_pull_id()
-            report = trends.build_report(clean_records(cache.load(), cfg))
+            # Annotate county-coded VALID (bulk sales table) before cleaning so
+            # materialized trends agree with ReadRepo's live-cleaned records.
+            loaded = cache.load()
+            annotate_valid(loaded, cache.conn)
+            report = trends.build_report(clean_records(loaded, cfg))
             cache.save_trends(pull_id, json.dumps(report))
             log.info("refresh: materialized trends for pull %s", pull_id)
         except Exception:

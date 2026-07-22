@@ -22,9 +22,11 @@ import logging
 import sys
 
 from . import analyze, clean, trends
+from .bulk_sales import annotate_valid
 from .cache import Cache
 from .client import ArcGISClient
 from .config import Config
+from .history import record_sales
 from .snapshot import snapshot_db
 
 
@@ -149,6 +151,15 @@ def main(argv=None) -> int:
         cache.clear()
         cache.save(rows, where)
         print(f"  cached {len(rows):,} rows")
+        # Append newly-observed sales to the permanent history ledger (the GIS
+        # layer overwrites a parcel's sale on resale). Never blocks the run.
+        try:
+            n_new = record_sales(cfg.db_path, rows, source="cli")
+            print(f"  sales history: +{n_new:,} new sale(s)")
+        except Exception:
+            logging.getLogger(__name__).warning(
+                "sales-history append failed (continuing)", exc_info=True
+            )
     else:
         meta = cache.last_pull()
         print(f"Using cached data (pulled {meta['pulled_at']}, {meta['row_count']:,} rows). "
@@ -163,7 +174,12 @@ def main(argv=None) -> int:
                                     price_floor=cfg.arms_length_price_floor)
         print("  " + "  ".join(f"{k}={v}" for k, v in stats.items()))
 
-    records = clean.clean_records(cache.load(), cfg)
+    raw_rows = cache.load()
+    # County-coded VALID from the bulk sales table (python -m
+    # franklin_housing.bulk_sales) supersedes the ratio proxy; no-op if the
+    # table hasn't been ingested into this DB.
+    annotate_valid(raw_rows, cache.conn)
+    records = clean.clean_records(raw_rows, cfg)
 
     # --- summary ---
     s = analyze.summary(records)

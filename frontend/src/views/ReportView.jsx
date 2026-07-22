@@ -3,6 +3,7 @@ import { api } from "../api.js";
 import AddressSearch from "../components/AddressSearch.jsx";
 import EstimateCard from "../components/EstimateCard.jsx";
 import CompTable from "../components/CompTable.jsx";
+import SaleHistoryTable from "../components/SaleHistoryTable.jsx";
 import { PriceVsSqftScatter, PpsfHistogram, TrendChart } from "../components/charts.jsx";
 import { usd, nbhdLabel } from "../format.js";
 
@@ -71,6 +72,7 @@ export default function ReportView() {
           {nbhd && <TrendChart trend={nbhd.trend} />}
 
           <CompTable comps={report.comps} title="Most comparable recent sales" />
+          <SaleHistoryTable history={report.sale_history} />
         </>
       )}
     </div>
