@@ -46,4 +46,5 @@ export const api = {
   neighborhood: (nbhdcd) => req(`/neighborhoods/${encodeURIComponent(nbhdcd)}`),
   trendDimensions: () => req("/trends/dimensions"),
   trend: (params) => req(`/trends?${new URLSearchParams(params)}`),
+  yoyTrend: (window) => req(`/trends/yoy?window=${encodeURIComponent(window)}`),
 };

@@ -14,6 +14,7 @@ import sqlite3
 import threading
 
 from franklin_housing import trends as trends_engine
+from franklin_housing import yoy as yoy_engine
 from franklin_housing.bulk_sales import annotate_valid
 from franklin_housing.cache import COLUMNS
 from franklin_housing.clean import clean_records
@@ -129,6 +130,20 @@ class ReadRepo:
             return []
         finally:
             conn.close()
+
+    def yoy(self, start: str, end: str) -> list[dict]:
+        """Per-year medians for a fixed calendar window (MM-DD..MM-DD), from
+        the bulk conveyance history. Empty when the sales table hasn't been
+        ingested yet. Not memoized — the join is a few tens of ms over ~64k
+        rows and the window params vary per request."""
+        conn = self._connect()
+        try:
+            rows = yoy_engine.fetch_rows(conn)
+        except sqlite3.Error:
+            return []
+        finally:
+            conn.close()
+        return yoy_engine.build_yoy(rows, start, end)
 
     def sales_meta(self) -> dict | None:
         """Latest bulk ingest info, or None if never ingested."""

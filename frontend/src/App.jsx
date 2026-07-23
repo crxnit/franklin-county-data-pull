@@ -4,12 +4,14 @@ import ReportView from "./views/ReportView.jsx";
 import CompTunerView from "./views/CompTunerView.jsx";
 import NeighborhoodView from "./views/NeighborhoodView.jsx";
 import TrendAnalysisView from "./views/TrendAnalysisView.jsx";
+import YoYView from "./views/YoYView.jsx";
 
 const VIEWS = {
   report: { label: "Pricing report", Comp: ReportView },
   tuner: { label: "Comp tuner", Comp: CompTunerView },
   neighborhood: { label: "Neighborhoods", Comp: NeighborhoodView },
   trends: { label: "Sales trends", Comp: TrendAnalysisView },
+  yoy: { label: "Year over year", Comp: YoYView },
 };
 
 export default function App() {

@@ -76,6 +76,7 @@ The Whigham case (7518 Whigham Ct → ~$523K) is the correctness oracle for both
 | `GET /api/neighborhoods/{nbhdcd}` | trend, histogram, scatter, recent sales (+ `name`) |
 | `GET /api/trends/dimensions` | available breakdowns, group values, granularities (for the UI dropdowns); the `neighborhood` dimension also carries a `labels` map of `code → "Name (code)"` |
 | `GET /api/trends?dimension=&group=&granularity=` | one sales-trend slice (median $/sqft + price per period) |
+| `GET /api/trends/yoy?window=MM-DD:MM-DD` | same-calendar-window medians across every year of the bulk conveyance history (back to ~1986), with YoY deltas |
 
 The trend report is materialized by the refresh job into a `trend_cache` table
 (keyed on `pull_meta.id`) and read by `ReadRepo.trends()`; if the table is
@@ -84,6 +85,16 @@ the latest pull. Dimensions: `overall`, `school`, `neighborhood`, `price_tier`,
 `sqft_band`. Granularities: `sale_biweek`, `sale_month`, `sale_quarter`,
 `sale_year`. The shared engine is `franklin_housing/trends.py` (zero-dep), also
 used by the CLI to write `data/sales_trends.{json,csv}` on every run.
+
+`/api/trends/yoy` is different: it reads the bulk `sales` history (not the
+24-month parcel window), via `franklin_housing/yoy.py` (zero-dep) — e.g. "the
+last two weeks of August, year over year". Wrap-around windows (`12-20:01-05`)
+span the year boundary, with January sales assigned to the prior year's
+instance. Pre-2014 rows are uncoded by the county and kept behind the price
+floor; county-coded-invalid, multi-parcel, conditional, and $0 rows are
+excluded from medians but counted per year (`n_excluded`) — surfaced, never
+silently dropped. CLI: `python -m franklin_housing.yoy --window 08-18:08-31`.
+SPA tab: "Year over year". Empty `years` until `bulk_sales` has been ingested.
 
 ## Sale history (1:many) + county VALID
 

@@ -10,6 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 
 from franklin_housing.neighborhoods import label_for
 from franklin_housing.trends import DIMENSIONS, GRANULARITIES
+from franklin_housing.yoy import parse_window
 
 from ..deps import get_repo
 from ..repo import ReadRepo
@@ -37,6 +38,26 @@ def list_dimensions(repo: ReadRepo = Depends(get_repo)):
     return {
         "granularities": list(GRANULARITIES),
         "dimensions": [_dim(dim) for dim in DIMENSIONS],
+    }
+
+
+@router.get("/yoy")
+def get_yoy(
+    window: str = Query(description="calendar window, e.g. 08-18:08-31"),
+    repo: ReadRepo = Depends(get_repo),
+):
+    """Same-period year-over-year medians from the bulk conveyance history
+    (back to ~1986) — e.g. the last two weeks of August across every year.
+    Empty `years` when the bulk sales table hasn't been ingested."""
+    try:
+        start, end = parse_window(window)
+    except ValueError as e:
+        raise HTTPException(400, str(e)) from None
+    meta = repo.sales_meta()
+    return {
+        "window": {"start": start, "end": end},
+        "extract_date": meta["extract_date"] if meta else None,
+        "years": repo.yoy(start, end),
     }
 
 
