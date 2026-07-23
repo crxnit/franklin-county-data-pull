@@ -257,3 +257,16 @@ Open items:
 - **Ledger backup** — `/data/sales_history.sqlite` is non-derivable; wire restic/nightly copy.
 - When the deferred ETag fast-follow lands: key it on `sales_meta.id` too, not just `pull_meta.id` (monthly ingest changes report content without a pull).
 - Post-ingest annotation staleness ≤1 day (records re-memoize on next daily refresh) — accepted.
+
+## Session log — 2026-07-22: same-period year-over-year trends (shipped live)
+
+Answered "sales trends YoY by week (e.g. last two weeks of August)?" — impossible against the 24-mo parcel window, now easy against the bulk `sales` history. **Shipped live** (commit `4ee5e36`, CI+Deploy green, live endpoint returns identical numbers to local: 2024 $553K +17.7% → 2025 $592.5K +7.1% for Aug 18–31, 55 years back to 1970s remnants).
+
+- **`franklin_housing/yoy.py`** (zero-dep): `parse_window("08-18:08-31")` (strict MM-DD — strptime tolerates `8-1`, which would break the lexicographic window compare, so shape is checked explicitly); `build_yoy()` → per-year `{period,n,n_excluded,median_price,median_ppsf,yoy_price_pct,yoy_ppsf_pct}`, YoY only vs the *adjacent* year (gap ⇒ None). Wrap windows (`12-20:01-05`) supported; January sales attribute to the prior year's instance. CLI: `.venv/bin/python -m franklin_housing.yoy --window MM-DD:MM-DD [db]` (default `data/webapp.sqlite` — the only DB with the `sales` table).
+- **Hygiene** (validated against the data first): **pre-2014 bulk rows have `valid_code=''`** — the county only began arms-length coding ~2014 — so uncoded/abstain rows are KEPT behind the $10K floor (filtering to `0 - VALID` only would silently drop 30 years, n≈1/yr). Excluded (coded-invalid / multi-parcel / conditional / ≤$10K) are **counted per year as `n_excluded`**, never silently dropped. $/sqft uses current `RESFLRAREA_AG` (approximate pre-addition).
+- **Server**: `ReadRepo.yoy(start,end)` (un-memoized — ~64k-row join is tens of ms, params vary) + `GET /api/trends/yoy?window=MM-DD:MM-DD` (400 malformed, empty `years` if bulk not ingested, carries `extract_date` provenance).
+- **Frontend**: new **"Year over year" tab** (`views/YoYView.jsx`) — MM-DD inputs + Compare, `TrendChart` reuse (period=year), newest-first table with mobile `data-label` card-reflow, small-n caveat footnote.
+- Tests 34→44 (8 core: bounds/wrap/filters/gap-years; 3 API — endpoint test self-verifies YoY math against its own medians and skips if bulk not ingested, so CI's no-DB skip discipline holds). Ruff clean, frontend builds (chunk sizes unchanged). WEBAPP.md API table + trends section updated in the feature commit.
+- Gotcha: first CI run failed in 24s — **transient Docker Hub timeout pulling `moby/buildkit`** in CI's build job (Deploy workflow was green incl. live smoke). `gh run rerun <id> --failed` fixed it; not a code issue.
+
+Open: none for this feature. Small-n noise is inherent to narrow windows (15–30 kept sales/yr) — surfaced via `n` column + footnote, accepted.
